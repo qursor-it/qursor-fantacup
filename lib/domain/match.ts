@@ -17,6 +17,16 @@ export function parseMatchDateTimeInput(date: string, time: string) {
   return new Date(`${date}T${time}:00.000Z`);
 }
 
+export function resolveMatchScore(
+  submitted: { homeScore?: number | null; awayScore?: number | null },
+  stored: { homeScore: number | null; awayScore: number | null }
+) {
+  return {
+    homeScore: submitted.homeScore !== undefined ? submitted.homeScore : stored.homeScore,
+    awayScore: submitted.awayScore !== undefined ? submitted.awayScore : stored.awayScore,
+  };
+}
+
 export function getMatchClockNow(now = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: MATCH_TIME_ZONE,

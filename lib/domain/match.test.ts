@@ -6,6 +6,7 @@ import {
   isScheduledMatchInProgress,
   LIVE_MATCH_WINDOW_MS,
   parseMatchDateTimeInput,
+  resolveMatchScore,
 } from "./match";
 
 const now = new Date("2026-06-15T18:00:00.000Z");
@@ -74,6 +75,28 @@ describe("match date/time input helpers", () => {
     expect(parseMatchDateTimeInput("2026-06-15", "13:40").toISOString()).toBe(
       "2026-06-15T13:40:00.000Z"
     );
+  });
+});
+
+describe("resolveMatchScore", () => {
+  const stored = { homeScore: 2, awayScore: 1 };
+
+  it("keeps the stored score when the fields are absent", () => {
+    expect(resolveMatchScore({}, stored)).toEqual(stored);
+  });
+
+  it("uses the submitted score when the fields are present", () => {
+    expect(resolveMatchScore({ homeScore: 0, awayScore: 3 }, stored)).toEqual({
+      homeScore: 0,
+      awayScore: 3,
+    });
+  });
+
+  it("uses submitted null to clear a score, while keeping the absent side", () => {
+    expect(resolveMatchScore({ homeScore: null }, stored)).toEqual({
+      homeScore: null,
+      awayScore: 1,
+    });
   });
 });
 

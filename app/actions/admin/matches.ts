@@ -7,7 +7,7 @@ import { MatchStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
-import { parseMatchDateTimeInput } from "@/lib/domain/match";
+import { parseMatchDateTimeInput, resolveMatchScore } from "@/lib/domain/match";
 import { getLastClosedAt } from "@/lib/scoring";
 import type { ActionResult } from "./football-teams";
 import { revalidateDcupPublicPaths } from "./revalidate-public";
@@ -169,8 +169,8 @@ export async function updateMatch(_prev: ActionResult | undefined, formData: For
     date: formData.get("date"),
     time: formData.get("time"),
     status: formData.get("status") || undefined,
-    homeScore: formData.get("homeScore"),
-    awayScore: formData.get("awayScore"),
+    ...(formData.has("homeScore") ? { homeScore: formData.get("homeScore") } : {}),
+    ...(formData.has("awayScore") ? { awayScore: formData.get("awayScore") } : {}),
     groupId: formData.get("groupId") || null,
     knockoutRoundId: formData.get("knockoutRoundId") || null,
   });
@@ -181,6 +181,9 @@ export async function updateMatch(_prev: ActionResult | undefined, formData: For
 
   if (!isValidId(id)) return { message: "Partita non valida." };
   if (!onlyOnePhase(parsed.data)) return { message: ONLY_ONE_PHASE_MSG };
+  if ((parsed.data.date && !parsed.data.time) || (!parsed.data.date && parsed.data.time)) {
+    return { errors: { date: ["Inserisci sia data sia ora."] } };
+  }
 
   const before = await db.match.findUnique({
     where: { id },
@@ -194,8 +197,9 @@ export async function updateMatch(_prev: ActionResult | undefined, formData: For
     return { message: "Non puoi cambiare le squadre: la partita ha già gol, voti o bonus registrati. Eliminali prima." };
   }
 
-  const nextHomeScore = parsed.data.homeScore ?? null;
-  const nextAwayScore = parsed.data.awayScore ?? null;
+  const nextScore = resolveMatchScore(parsed.data, before);
+  const nextHomeScore = nextScore.homeScore;
+  const nextAwayScore = nextScore.awayScore;
   if (
     before._count.goals > 0 &&
     (nextHomeScore !== before.homeScore || nextAwayScore !== before.awayScore)
@@ -225,9 +229,9 @@ export async function updateMatch(_prev: ActionResult | undefined, formData: For
   const updateData: Parameters<typeof db.match.update>[0]["data"] = {
     homeTeamId: parsed.data.homeTeamId,
     awayTeamId: parsed.data.awayTeamId,
-    startsAt: parseMatchDateTimeInput(parsed.data.date, parsed.data.time),
-    homeScore: parsed.data.homeScore ?? null,
-    awayScore: parsed.data.awayScore ?? null,
+    startsAt: startsAtFromForm(parsed.data.date, parsed.data.time),
+    homeScore: nextScore.homeScore,
+    awayScore: nextScore.awayScore,
     groupId: parsed.data.groupId ?? null,
     knockoutRoundId: parsed.data.knockoutRoundId ?? null,
   };
