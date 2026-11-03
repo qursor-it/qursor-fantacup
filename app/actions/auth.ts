@@ -17,8 +17,6 @@ import { getRegistrationOpen } from "@/lib/app-settings";
 import {
   checkRateLimit,
   getClientIp,
-  loginEmailLimiter,
-  loginIpLimiter,
   registerIpLimiter,
 } from "@/lib/rate-limit";
 
@@ -126,16 +124,6 @@ export async function login(
     return { message: "Credenziali non valide." };
   }
 
-  // Rate limit per email e per IP (in memoria, per istanza: vedi lib/rate-limit.ts)
-  const ip = getClientIp(await headers());
-  const [emailLimit, ipLimit] = await Promise.all([
-    checkRateLimit(loginEmailLimiter, `login:email:${parsed.data.email.toLowerCase()}`),
-    checkRateLimit(loginIpLimiter, `login:ip:${ip}`),
-  ]);
-  if (emailLimit.limited || ipLimit.limited) {
-    return { message: TOO_MANY_ATTEMPTS };
-  }
-
   const existingUser = await db.user.findUnique({
     where: { email: parsed.data.email },
     select: { id: true, role: true, fantasyTeam: { select: { id: true } } },
@@ -151,8 +139,14 @@ export async function login(
     });
   } catch (e) {
     if (e instanceof AuthError) {
-      if (e.type === "CredentialsSignin" && (e as { cause?: { err?: { code?: string } } }).cause?.err?.code === "suspended") {
-        return { message: "Account sospeso. Contatta un amministratore." };
+      if (e.type === "CredentialsSignin") {
+        const code = (e as { cause?: { err?: { code?: string } } }).cause?.err?.code;
+        if (code === "suspended") {
+          return { message: "Account sospeso. Contatta un amministratore." };
+        }
+        if (code === "rate_limited") {
+          return { message: TOO_MANY_ATTEMPTS };
+        }
       }
       return { message: "Email o password non corretti." };
     }

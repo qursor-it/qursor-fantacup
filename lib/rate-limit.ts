@@ -25,9 +25,17 @@ export const deleteAccountLimiter = new RateLimiterMemory({
   blockDuration: 3600,
 });
 
-// Login: max 10 tentativi per email ogni 15 minuti
-export const loginEmailLimiter = new RateLimiterMemory({
+// Login: max 10 tentativi per email+IP ogni 15 minuti.
+// La chiave include l'IP: un estraneo non puo bloccare il proprietario da un altro IP.
+export const loginEmailIpLimiter = new RateLimiterMemory({
   points: 10,
+  duration: 15 * 60,
+  blockDuration: 15 * 60,
+});
+
+// Login: max 50 tentativi per email ogni 15 minuti (tetto globale contro il guessing distribuito)
+export const loginEmailLimiter = new RateLimiterMemory({
+  points: 50,
   duration: 15 * 60,
   blockDuration: 15 * 60,
 });
@@ -58,18 +66,61 @@ export const trackLimiter = new RateLimiterMemory({
   duration: 60,
 });
 
+const DEFAULT_TRUSTED_PROXY_HOPS = 1;
+
+function trustedProxyHops(): number {
+  const hops = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "", 10);
+  return Number.isInteger(hops) && hops >= 0 ? hops : DEFAULT_TRUSTED_PROXY_HOPS;
+}
+
 /**
- * IP del client dagli header della richiesta: primo valore di x-forwarded-for,
- * poi x-real-ip. Gli header sono falsificabili se non impostati da un proxy
- * fidato: va bene come chiave di rate limit "best effort".
+ * IP del client dagli header della richiesta.
+ *
+ * x-forwarded-for e una lista "client, proxy1, proxy2, ...": ogni proxy fidato
+ * accoda l'IP del peer. Con N proxy fidati davanti al container l'IP reale e
+ * l'N-esimo da destra (N=0: si prende comunque il valore piu a destra). Cosi i
+ * valori iniettati dal client a sinistra non cambiano il bucket.
  */
-export function getClientIp(headers: { get(name: string): string | null }): string {
+export function getClientIp(
+  headers: { get(name: string): string | null },
+  hops: number = trustedProxyHops()
+): string {
   const forwarded = headers.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  if (first) return first;
+  if (forwarded) {
+    const entries = forwarded
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    if (entries.length > 0) {
+      // hops 0 e 1 leggono il valore piu a destra; da 2 in poi si scavalcano i proxy.
+      const index = Math.max(0, entries.length - Math.max(1, hops));
+      return entries[index];
+    }
+  }
   const realIp = headers.get("x-real-ip")?.trim();
   if (realIp) return realIp;
   return "unknown";
+}
+
+/** True se la chiave ha esaurito i punti o e in blocco. Non consuma punti. */
+export async function isRateLimited(
+  limiter: RateLimiterMemory,
+  key: string
+): Promise<boolean> {
+  const res = await limiter.get(key);
+  return res !== null && res.remainingPoints <= 0;
+}
+
+/** Consuma un punto ignorando il rifiuto: da usare dopo un tentativo fallito. */
+export async function consumeRateLimit(
+  limiter: RateLimiterMemory,
+  key: string
+): Promise<void> {
+  try {
+    await limiter.consume(key);
+  } catch {
+    // chiave gia bloccata: nessun punto da consumare
+  }
 }
 
 export async function checkRateLimit(

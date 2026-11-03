@@ -87,3 +87,8 @@ Al momento quei file non sono presenti nel workspace, quindi quando inizieremo l
   * Android: packaging TWA/WebAPK o wrapper nativo con firma e Play Console
   * iOS: wrapper nativo (es. Capacitor/PWABuilder) con build Xcode e App Store Connect
 * le credenziali store, i bundle identifier, le chiavi di firma e gli asset marketing non devono stare nel repository
+
+## Rate limiting e proxy
+
+Il rate limit usa l'IP del client ricavato da `x-forwarded-for` partendo da destra, perche i valori a sinistra possono essere iniettati dal client. La variabile d'ambiente `TRUSTED_PROXY_HOPS` (intero, default `1`) indica quanti reverse proxy fidati stanno davanti al container e deve corrispondere al deployment reale: con un solo proxy in front si lascia `1`, con due si imposta `2`, mentre `0` prende comunque il valore piu a destra dell'header.
+

@@ -3,6 +3,14 @@ import Credentials from "next-auth/providers/credentials";
 import { CredentialsSignin } from "next-auth";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import {
+  consumeRateLimit,
+  getClientIp,
+  isRateLimited,
+  loginEmailIpLimiter,
+  loginEmailLimiter,
+  loginIpLimiter,
+} from "@/lib/rate-limit";
 import { UserRole } from "@prisma/client";
 
 // --- Type augmentation ---
@@ -28,6 +36,18 @@ export class SuspendedUserError extends CredentialsSignin {
   code = "suspended";
 }
 
+export class RateLimitedError extends CredentialsSignin {
+  code = "rate_limited";
+}
+
+async function recordFailedLogin(emailIpKey: string, emailKey: string, ipKey: string) {
+  await Promise.all([
+    consumeRateLimit(loginEmailIpLimiter, emailIpKey),
+    consumeRateLimit(loginEmailLimiter, emailKey),
+    consumeRateLimit(loginIpLimiter, ipKey),
+  ]);
+}
+
 // --- Auth config ---
 
 // Hash bcrypt fittizio (costo 12, come le password reali) usato quando l'email non esiste.
@@ -48,9 +68,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email =
-          typeof credentials?.email === "string" ? credentials.email : null;
+          typeof credentials?.email === "string"
+            ? credentials.email.trim().toLowerCase()
+            : null;
         const password =
           typeof credentials?.password === "string"
             ? credentials.password
@@ -58,15 +80,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!email || !password) return null;
 
+        const ip = getClientIp(request.headers);
+        const emailIpKey = `login:email-ip:${email}:${ip}`;
+        const emailKey = `login:email:${email}`;
+        const ipKey = `login:ip:${ip}`;
+
+        // Controllo prima di verificare: un login corretto non consuma punti.
+        // I punti si consumano solo sui fallimenti (sotto).
+        const blocked = await Promise.all([
+          isRateLimited(loginEmailIpLimiter, emailIpKey),
+          isRateLimited(loginEmailLimiter, emailKey),
+          isRateLimited(loginIpLimiter, ipKey),
+        ]);
+        if (blocked.some(Boolean)) throw new RateLimitedError();
+
         const user = await db.user.findUnique({ where: { email } });
         if (!user) {
           // Stesso costo di un login reale: evita di distinguere le email registrate dai tempi di risposta.
           await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+          await recordFailedLogin(emailIpKey, emailKey, ipKey);
           return null;
         }
 
         const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-        if (!passwordMatch) return null;
+        if (!passwordMatch) {
+          await recordFailedLogin(emailIpKey, emailKey, ipKey);
+          return null;
+        }
 
         if (user.isSuspended) throw new SuspendedUserError();
 
