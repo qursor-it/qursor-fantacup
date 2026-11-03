@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { resolveTeamFlag } from "@/lib/flags";
+import { MATCH_TIME_ZONE } from "@/lib/domain/match";
 
 type TeamInfo = {
   name: string;
@@ -42,7 +43,7 @@ function TeamFlag({ team }: { team: TeamInfo }) {
 function formatDateLabel(date: Date | null): string {
   if (!date) return "";
   return date.toLocaleDateString("it-IT", {
-    weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
+    weekday: "short", day: "numeric", month: "short", timeZone: MATCH_TIME_ZONE,
   });
 }
 

@@ -35,10 +35,15 @@ export async function readFantasyRankingSnapshot(): Promise<RankEntry[] | null> 
       db.fantasyTeam.count(),
     ]);
 
-    if (rows.length !== teamCount) return null;
-    if (rows.length > 0) {
-      const staleByMvpWindow = await hasMvpWindowClosedSince(rows[0].computedAt);
-      if (staleByMvpWindow) return null;
+    const now = new Date();
+    const computedAt = rows[0]?.computedAt ?? now;
+    const mvpWindowsClosedAt =
+      rows.length === teamCount && rows.length > 0
+        ? await getMvpWindowsClosedSince(computedAt, now)
+        : [];
+
+    if (isSnapshotStale({ computedAt, snapshotTeamCount: rows.length, teamCount, mvpWindowsClosedAt, now })) {
+      return null;
     }
 
     return rows.map((row) => ({
@@ -87,14 +92,37 @@ async function replaceFantasyRankingSnapshot(rankings: RankEntry[]): Promise<voi
   await db.$transaction(writes);
 }
 
-async function hasMvpWindowClosedSince(computedAt: Date): Promise<boolean> {
-  const now = new Date();
+export type SnapshotStalenessInput = {
+  computedAt: Date;
+  snapshotTeamCount: number;
+  teamCount: number;
+  /** Timestamp di chiusura (concludedAt + MVP_WINDOW_MS) delle finestre MVP. */
+  mvpWindowsClosedAt: Date[];
+  now: Date;
+};
+
+/** Lo snapshot va rigenerato se cambia il numero di squadre o se una finestra MVP si chiude dopo la snapshot. */
+export function isSnapshotStale({
+  computedAt,
+  snapshotTeamCount,
+  teamCount,
+  mvpWindowsClosedAt,
+  now,
+}: SnapshotStalenessInput): boolean {
+  if (snapshotTeamCount !== teamCount) return true;
+
+  return mvpWindowsClosedAt.some(
+    (closedAt) => closedAt.getTime() > computedAt.getTime() && closedAt.getTime() <= now.getTime()
+  );
+}
+
+async function getMvpWindowsClosedSince(computedAt: Date, now: Date): Promise<Date[]> {
   const minConcludedAt = new Date(computedAt.getTime() - MVP_WINDOW_MS);
   const maxConcludedAt = new Date(now.getTime() - MVP_WINDOW_MS);
 
-  if (maxConcludedAt <= minConcludedAt) return false;
+  if (maxConcludedAt <= minConcludedAt) return [];
 
-  const closedAfterSnapshot = await db.match.count({
+  const matches = await db.match.findMany({
     where: {
       status: MatchStatus.CONCLUDED,
       concludedAt: {
@@ -102,7 +130,10 @@ async function hasMvpWindowClosedSince(computedAt: Date): Promise<boolean> {
         lte: maxConcludedAt,
       },
     },
+    select: { concludedAt: true },
   });
 
-  return closedAfterSnapshot > 0;
+  return matches
+    .filter((match) => match.concludedAt !== null)
+    .map((match) => new Date(match.concludedAt!.getTime() + MVP_WINDOW_MS));
 }

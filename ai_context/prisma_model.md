@@ -21,6 +21,8 @@ model User {
   fantasyTeam       FantasyTeam?
   votes             Vote[]
   adminAuditLogs    AdminAuditLog[]
+  rosterEditWindows RosterEditWindow[]
+  scoringPhases     ScoringPhase[]
 }
 
 model FantasyTeam {
@@ -34,21 +36,11 @@ model FantasyTeam {
   user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   captain         Player              @relation("FantasyTeamCaptain", fields: [captainPlayerId], references: [id], onDelete: Restrict)
   players         FantasyTeamPlayer[]
+  editUsages      RosterEditUsage[]
+  phaseScores     ScoringPhaseScore[]
   rankingSnapshot FantasyRankingSnapshot?
 
   @@index([captainPlayerId])
-}
-
-model FantasyRankingSnapshot {
-  fantasyTeamId Int      @id
-  rank          Int
-  totalPoints   Decimal  @db.Decimal(7, 2)
-  computedAt    DateTime @default(now())
-
-  fantasyTeam FantasyTeam @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
-
-  @@index([rank])
-  @@index([totalPoints])
 }
 
 model FootballTeam {
@@ -160,6 +152,12 @@ model Match {
   @@index([startsAt])
   @@index([groupId])
   @@index([knockoutRoundId])
+  @@index([status, startsAt])
+  @@index([status, concludedAt])
+  @@index([groupId, status])
+  @@index([knockoutRoundId, status, bracketPosition])
+  @@index([homeTeamId, status, startsAt])
+  @@index([awayTeamId, status, startsAt])
 }
 
 model MatchPlayer {
@@ -176,7 +174,7 @@ model MatchPlayer {
 
 model Vote {
   id        Int      @id @default(autoincrement())
-  userId    Int?     // null = voto anonimizzato dopo la cancellazione dell'utente
+  userId    Int?     // null = voto anonimizzato (utente cancellato): il voto resta valido per l'MVP
   matchId   Int
   playerId  Int
   createdAt DateTime @default(now())
@@ -196,10 +194,14 @@ model BonusType {
   code        String             @unique
   name        String             @unique
   points      Decimal            @db.Decimal(5, 2)
+  isSecret    Boolean            @default(false)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
   assignments PlayerMatchBonus[]
+
+  @@index([isSecret, points, name])
+  @@index([isSecret, name])
 }
 
 model PlayerMatchBonus {
@@ -234,6 +236,7 @@ model MatchGoal {
 
   @@index([matchId])
   @@index([scorerId])
+  @@index([scorerId, isOwnGoal])
 }
 
 model FantasyTeamPlayer {
@@ -246,10 +249,44 @@ model FantasyTeamPlayer {
 
   @@id([fantasyTeamId, playerId])
   @@index([playerId])
+  @@index([playerId, fantasyTeamId])
 }
 
-// Fase di punteggio fanta chiusa (snapshot storico). `order` è unico: due
-// chiusure concorrenti non possono creare fasi con lo stesso ordine.
+// Finestra di "mercato": periodo in cui gli utenti possono modificare la propria
+// rosa, con un numero massimo di sostituzioni giocatore consentite.
+model RosterEditWindow {
+  id          Int               @id @default(autoincrement())
+  opensAt     DateTime
+  closesAt    DateTime
+  maxChanges  Int               // sostituzioni giocatore consentite per utente
+  createdById Int?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  createdBy   User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  usages      RosterEditUsage[]
+
+  @@index([opensAt, closesAt])
+}
+
+// Conteggio dei cambi usati da una squadra in una specifica finestra.
+// baselinePlayerIds = rosa di partenza (al primo salvataggio nella finestra).
+model RosterEditUsage {
+  windowId          Int
+  fantasyTeamId     Int
+  baselinePlayerIds Json
+  changesUsed       Int      @default(0)
+  updatedAt         DateTime @updatedAt
+
+  window      RosterEditWindow @relation(fields: [windowId], references: [id], onDelete: Cascade)
+  fantasyTeam FantasyTeam      @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
+
+  @@id([windowId, fantasyTeamId])
+  @@index([fantasyTeamId])
+}
+
+// Fase di punteggio fanta chiusa (snapshot storico). Alla chiusura i punti di
+// ogni squadra in quella fase vengono congelati e non cambiano più.
 model ScoringPhase {
   id          Int                 @id @default(autoincrement())
   name        String
@@ -265,6 +302,7 @@ model ScoringPhase {
   @@unique([order])
 }
 
+// Punti congelati di una squadra in una fase (solo i punti di quella fase).
 model ScoringPhaseScore {
   phaseId         Int
   fantasyTeamId   Int
@@ -277,6 +315,20 @@ model ScoringPhaseScore {
 
   @@id([phaseId, fantasyTeamId])
   @@index([fantasyTeamId])
+}
+
+// Snapshot della classifica fantasy cumulativa pubblica.
+// Viene invalidato dalle mutazioni che cambiano punti, fasi o rose.
+model FantasyRankingSnapshot {
+  fantasyTeamId Int      @id
+  rank          Int
+  totalPoints   Decimal  @db.Decimal(7, 2)
+  computedAt    DateTime @default(now())
+
+  fantasyTeam FantasyTeam @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
+
+  @@index([rank])
+  @@index([totalPoints])
 }
 
 model AdminAuditLog {
@@ -293,6 +345,12 @@ model AdminAuditLog {
 
   @@index([adminUserId])
   @@index([entityType, entityId])
+}
+
+// Aggregated daily page-view counter (one row per calendar day)
+model SiteVisit {
+  date  String @id // ISO date "YYYY-MM-DD"
+  count Int    @default(0)
 }
 
 // Impostazioni singleton dell'app (id=1 fisso, upsert).
@@ -315,5 +373,104 @@ enum PlayerRole {
 enum MatchStatus {
   DRAFT
   SCHEDULED
+  LIVE
   CONCLUDED
+}
+
+// ─── GreenVolley ─────────────────────────────────────────────────────────────
+
+model VolleyTeam {
+  id          Int               @id @default(autoincrement())
+  name        String
+  players     VolleyPlayer[]
+  homeMatches VolleyMatch[]     @relation("VolleyHomeTeam")
+  awayMatches VolleyMatch[]     @relation("VolleyAwayTeam")
+  groups      VolleyGroupTeam[]
+  createdAt   DateTime          @default(now())
+
+  @@index([name])
+}
+
+model VolleyPlayer {
+  id        Int        @id @default(autoincrement())
+  name      String
+  team      VolleyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId    Int
+  createdAt DateTime   @default(now())
+
+  @@index([teamId])
+  @@index([teamId, name])
+}
+
+model VolleyMatch {
+  id              Int                  @id @default(autoincrement())
+  homeTeam        VolleyTeam           @relation("VolleyHomeTeam", fields: [homeTeamId], references: [id])
+  homeTeamId      Int
+  awayTeam        VolleyTeam           @relation("VolleyAwayTeam", fields: [awayTeamId], references: [id])
+  awayTeamId      Int
+  status          VolleyMatchStatus    @default(DRAFT)
+  date            DateTime?
+  homeDisciplinaryPoints Int            @default(0)
+  awayDisciplinaryPoints Int            @default(0)
+  sets            VolleySet[]
+  group           VolleyGroup?         @relation(fields: [groupId], references: [id])
+  groupId         Int?
+  knockoutRound   VolleyKnockoutRound? @relation(fields: [knockoutRoundId], references: [id])
+  knockoutRoundId Int?
+  createdAt       DateTime             @default(now())
+
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([groupId])
+  @@index([knockoutRoundId])
+  @@index([status, date])
+  @@index([groupId, status])
+  @@index([knockoutRoundId, status, date])
+  @@index([homeTeamId, status, date])
+  @@index([awayTeamId, status, date])
+}
+
+enum VolleyMatchStatus {
+  DRAFT
+  SCHEDULED
+  CONCLUDED
+}
+
+model VolleySet {
+  id         Int         @id @default(autoincrement())
+  match      VolleyMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId    Int
+  setNumber  Int
+  homePoints Int
+  awayPoints Int
+
+  @@unique([matchId, setNumber])
+  @@index([matchId])
+}
+
+model VolleyGroup {
+  id      Int               @id @default(autoincrement())
+  name    String
+  teams   VolleyGroupTeam[]
+  matches VolleyMatch[]
+}
+
+model VolleyGroupTeam {
+  group     VolleyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   Int
+  team      VolleyTeam  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId    Int
+  qualified Boolean     @default(false)
+
+  @@id([groupId, teamId])
+  @@index([teamId])
+}
+
+model VolleyKnockoutRound {
+  id      Int           @id @default(autoincrement())
+  name    String
+  order   Int
+  matches VolleyMatch[]
+
+  @@index([order])
 }
