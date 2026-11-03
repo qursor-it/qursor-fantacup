@@ -3,15 +3,20 @@ import { notFound } from "next/navigation";
 import AdminPageHeader from "@/components/admin-page-header";
 import VolleyTeamForm from "../../_form";
 import TeamPlayersSection from "../_team-players";
+import { requireAdmin } from "@/lib/session";
+import { parseId } from "@/lib/parse-id";
 
 export default async function EditVolleySquadraPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
+  const teamId = parseId(id);
+  if (teamId === null) notFound();
   const team = await db.volleyTeam.findUnique({
-    where: { id: Number(id) },
+    where: { id: teamId },
     include: { players: { orderBy: { name: "asc" }, select: { id: true, name: true } } },
   });
   if (!team) notFound();

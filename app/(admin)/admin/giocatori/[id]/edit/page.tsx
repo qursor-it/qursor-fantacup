@@ -3,14 +3,18 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import EditGiocatoreForm from "./_form";
 import AdminPageHeader from "@/components/admin-page-header";
+import { requireAdmin } from "@/lib/session";
+import { parseId } from "@/lib/parse-id";
 
 export default async function EditGiocatorePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
-  const playerId = Number(id);
+  const playerId = parseId(id);
+  if (playerId === null) notFound();
 
   const [player, teams, goals, bonuses, appearances, fantasySlots] = await Promise.all([
     db.player.findUnique({

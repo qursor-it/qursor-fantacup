@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import AuditTable from "./_table";
+import { requireAdmin } from "@/lib/session";
 export const dynamic = 'force-dynamic'
 
 
 export default async function AuditPage() {
+  await requireAdmin();
   const logs = await db.adminAuditLog.findMany({
     orderBy: { createdAt: "desc" },
     take: 500,

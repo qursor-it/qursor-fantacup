@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { computeVolleyStandings } from "@/lib/volley/standings";
+import { requireAdmin } from "@/lib/session";
 
 const GV = "#0E3D2B";
 
 export default async function GreenVolleyDashboard() {
+  await requireAdmin();
   const [teamCount, playerCount, matchCount, concludedCount, nextMatch, recentMatches, groups] = await Promise.all([
     db.volleyTeam.count(),
     db.volleyPlayer.count(),

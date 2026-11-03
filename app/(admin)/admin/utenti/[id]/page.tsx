@@ -5,6 +5,8 @@ import AdminPageHeader from "@/components/admin-page-header";
 import UserActionsForm from "./_actions-form";
 import AdminSetPasswordForm from "./_set-password-form";
 import RoleBadge from "@/components/role-badge";
+import { parseId } from "@/lib/parse-id";
+import { requireAdmin } from "@/lib/session";
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -31,9 +33,12 @@ function formatDateTime(d: Date | null) {
 }
 
 export default async function UtenteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
   const { id } = await params;
+  const userId = parseId(id);
+  if (userId === null) notFound();
   const user = await db.user.findUnique({
-    where: { id: Number(id) },
+    where: { id: userId },
     include: {
       fantasyTeam: {
         include: {

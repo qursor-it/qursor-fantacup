@@ -2,10 +2,14 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import RosterForm from "./_roster-form";
+import { requireAdmin } from "@/lib/session";
+import { parseId } from "@/lib/parse-id";
 
 export default async function SquadraFantasyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
   const { id } = await params;
-  const fantasyTeamId = Number(id);
+  const fantasyTeamId = parseId(id);
+  if (fantasyTeamId === null) notFound();
 
   const [fantasyTeam, allPlayers] = await Promise.all([
     db.fantasyTeam.findUnique({

@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
 import NuovaPartitaForm from "./_form";
 import AdminPageHeader from "@/components/admin-page-header";
+import { requireAdmin } from "@/lib/session";
 
 export default async function NuovaPartitaPage({ searchParams }: { searchParams: Promise<{ groupId?: string }> }) {
+  await requireAdmin();
   const sp = await searchParams;
   const [teams, groups] = await Promise.all([
     db.footballTeam.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

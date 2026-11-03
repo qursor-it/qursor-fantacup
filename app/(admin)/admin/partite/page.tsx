@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
 import PartiteTable from "./_table";
 import AdminPageHeader from "@/components/admin-page-header";
+import { requireAdmin } from "@/lib/session";
 export const dynamic = 'force-dynamic'
 
 
 export default async function PartitePage() {
+  await requireAdmin();
   const matches = await db.match.findMany({
     orderBy: { startsAt: "desc" },
     select: {

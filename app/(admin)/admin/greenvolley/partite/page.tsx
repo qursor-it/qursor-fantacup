@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import VolleyMatchesTable from "./_table";
+import { requireAdmin } from "@/lib/session";
 
 export default async function VolleyPartitePage() {
+  await requireAdmin();
   const matches = await db.volleyMatch.findMany({
     orderBy: { date: "desc" },
     include: {

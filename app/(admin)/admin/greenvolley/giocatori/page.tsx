@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import VolleyPlayersTable from "./_table";
+import { requireAdmin } from "@/lib/session";
 
 export default async function VolleyGiocatoriPage() {
+  await requireAdmin();
   const players = await db.volleyPlayer.findMany({
     orderBy: [{ team: { name: "asc" } }, { name: "asc" }],
     include: { team: { select: { id: true, name: true } } },

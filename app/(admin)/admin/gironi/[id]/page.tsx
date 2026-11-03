@@ -4,11 +4,14 @@ import { db } from "@/lib/db";
 import { computeGroupStandings } from "@/lib/standings";
 import AdminPageHeader from "@/components/admin-page-header";
 import { EditGroupForm, DeleteGroupForm, AddTeamForm, RemoveTeamForm, ToggleQualifiedForm } from "./_forms";
+import { requireAdmin } from "@/lib/session";
+import { parseId } from "@/lib/parse-id";
 
 export default async function GironeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
   const { id } = await params;
-  const groupId = Number(id);
-  if (Number.isNaN(groupId)) notFound();
+  const groupId = parseId(id);
+  if (groupId === null) notFound();
 
   const [group, allTeams, standings, matches] = await Promise.all([
     db.group.findUnique({

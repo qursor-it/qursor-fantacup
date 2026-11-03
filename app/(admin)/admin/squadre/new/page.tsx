@@ -1,7 +1,9 @@
 import AdminPageHeader from "@/components/admin-page-header";
 import NuovaSquadraForm from "./_form";
+import { requireAdmin } from "@/lib/session";
 
-export default function NuovaSquadraPage() {
+export default async function NuovaSquadraPage() {
+  await requireAdmin();
   return (
     <div>
       <AdminPageHeader title="Nuova squadra reale" backHref="/admin/squadre" />

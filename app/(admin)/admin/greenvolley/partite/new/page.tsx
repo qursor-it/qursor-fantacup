@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import NewVolleyMatchForm from "./_form";
+import { requireAdmin } from "@/lib/session";
 
 export default async function NuovaVolleyPartitaPage() {
+  await requireAdmin();
   const [teams, groups, rounds] = await Promise.all([
     db.volleyTeam.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.volleyGroup.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

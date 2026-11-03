@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
 import UtentiTable from "./_table";
 import AdminPageHeader from "@/components/admin-page-header";
+import { requireAdmin } from "@/lib/session";
 export const dynamic = 'force-dynamic'
 
 
 export default async function UtentiPage() {
+  await requireAdmin();
   const users = await db.user.findMany({
     orderBy: [{ role: "asc" }, { createdAt: "asc" }],
     include: { fantasyTeam: { select: { id: true, name: true } } },

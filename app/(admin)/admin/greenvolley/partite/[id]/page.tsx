@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import AdminPageHeader from "@/components/admin-page-header";
 import SetSection from "./_sets-section";
 import EditVolleyMatchForm from "./_match-form";
+import { requireAdmin } from "@/lib/session";
+import { parseId } from "@/lib/parse-id";
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Bozza",
@@ -20,10 +22,13 @@ export default async function VolleyMatchDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
+  const matchId = parseId(id);
+  if (matchId === null) notFound();
   const [match, teams, groups, rounds] = await Promise.all([
     db.volleyMatch.findUnique({
-      where: { id: Number(id) },
+      where: { id: matchId },
       include: {
         homeTeam: { select: { id: true, name: true } },
         awayTeam: { select: { id: true, name: true } },

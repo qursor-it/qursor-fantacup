@@ -1,8 +1,10 @@
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import GroupCard from "./_group-card";
+import { requireAdmin } from "@/lib/session";
 
 export default async function VolleyGironiPage() {
+  await requireAdmin();
   const [groups, allTeams] = await Promise.all([
     db.volleyGroup.findMany({
       orderBy: { name: "asc" },

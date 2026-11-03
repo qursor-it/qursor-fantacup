@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
+import { requireAdmin } from "@/lib/session";
 
 export default async function GironiAdminPage() {
+  await requireAdmin();
   const groups = await db.group.findMany({
     orderBy: { order: "asc" },
     include: {

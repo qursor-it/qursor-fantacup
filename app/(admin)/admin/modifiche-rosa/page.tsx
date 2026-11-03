@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import { isEditWindowOpen } from "@/lib/domain/roster-edit-window";
 import WindowForm from "./_form";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ function fmt(d: Date): string {
 }
 
 export default async function ModificheRosaPage() {
+  await requireAdmin();
   const now = new Date();
 
   // Finestra modificabile: l'ultima non ancora chiusa (attiva o programmata).

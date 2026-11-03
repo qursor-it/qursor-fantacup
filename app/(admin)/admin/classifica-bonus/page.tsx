@@ -3,9 +3,11 @@ import { MatchStatus } from "@prisma/client";
 import { getOfficialMvpPlayerId } from "@/lib/domain/mvp";
 import AdminPageHeader from "@/components/admin-page-header";
 import BonusMalusTables from "./_tables";
+import { requireAdmin } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 export default async function ClassificaBonusPage() {
+  await requireAdmin();
   const [assignments, bonusTypes, mvpMatches] = await Promise.all([
     db.playerMatchBonus.findMany({
       where: { bonusType: { code: { not: "MVP" } } },

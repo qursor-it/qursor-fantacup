@@ -2,6 +2,7 @@ import { getRegistrationOpen, getTournamentConcluded } from "@/lib/app-settings"
 import { setRegistrationOpenAction, setTournamentConcludedAction } from "@/app/actions/admin/settings";
 import AdminPageHeader from "@/components/admin-page-header";
 import SettingToggle from "./_toggle";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ const cardStyle = {
 };
 
 export default async function ImpostazioniPage() {
+  await requireAdmin();
   const [registrationOpen, tournamentConcluded] = await Promise.all([
     getRegistrationOpen(),
     getTournamentConcluded(),

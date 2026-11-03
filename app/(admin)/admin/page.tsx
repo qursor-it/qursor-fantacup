@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getMatchClockNow, LIVE_MATCH_WINDOW_MS } from "@/lib/domain/match";
 import { computeStandings } from "@/lib/standings";
 import { computeCumulativeRankings } from "@/lib/scoring";
+import { requireAdmin } from "@/lib/session";
 
 type AdminDashboardMatch = {
   id: number;
@@ -16,6 +17,7 @@ type AdminDashboardMatch = {
 };
 
 export default async function AdminDashboardPage() {
+  await requireAdmin();
   const matchClockNow = getMatchClockNow();
   const [
     teamCount, playerCount, matchCount, userCount, fantasyTeamCount,

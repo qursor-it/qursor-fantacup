@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
 import SquadreTable from "./_table";
 import AdminPageHeader from "@/components/admin-page-header";
+import { requireAdmin } from "@/lib/session";
 export const dynamic = 'force-dynamic'
 
 
 export default async function SquadrePage() {
+  await requireAdmin();
   const teams = await db.footballTeam.findMany({
     orderBy: { name: "asc" },
     include: {

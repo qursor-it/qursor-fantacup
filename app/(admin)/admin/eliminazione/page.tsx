@@ -2,10 +2,12 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import AdminPageHeader from "@/components/admin-page-header";
 import { InitBracketForm, DeleteBracketForm, AssignTeamsForm } from "./_actions";
+import { requireAdmin } from "@/lib/session";
 export const dynamic = 'force-dynamic'
 
 
 export default async function EliminazioneAdminPage() {
+  await requireAdmin();
   const [rounds, qualifiedTeams] = await Promise.all([
     db.knockoutRound.findMany({
       orderBy: { order: "asc" },

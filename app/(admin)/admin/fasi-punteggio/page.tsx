@@ -4,6 +4,7 @@ import ConfirmDeleteForm from "@/components/confirm-delete-form";
 import { computeCurrentPhaseRankings } from "@/lib/scoring";
 import { deleteScoringPhase } from "@/app/actions/admin/scoring-phases";
 import ClosePhaseForm from "./_close-form";
+import { requireAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ function fmt(d: Date): string {
 }
 
 export default async function FasiPunteggioPage() {
+  await requireAdmin();
   const [phases, currentRanking] = await Promise.all([
     db.scoringPhase.findMany({
       orderBy: { order: "desc" },

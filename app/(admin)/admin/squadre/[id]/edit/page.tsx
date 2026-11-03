@@ -7,10 +7,14 @@ import AdminPageHeader from "@/components/admin-page-header";
 import RoleBadge from "@/components/role-badge";
 import ConfirmDeleteForm from "@/components/confirm-delete-form";
 import { removePlayerFromFootballTeam } from "@/app/actions/admin/players";
+import { requireAdmin } from "@/lib/session";
+import { parseId } from "@/lib/parse-id";
 
 export default async function EditSquadraPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
   const { id } = await params;
-  const teamId = Number(id);
+  const teamId = parseId(id);
+  if (teamId === null) notFound();
 
   const [team, standings, groupTeam] = await Promise.all([
     db.footballTeam.findUnique({

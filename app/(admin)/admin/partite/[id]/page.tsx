@@ -11,15 +11,18 @@ import MvpOverrideForm from "./_mvp-override-form";
 import StatusBadge from "@/components/status-badge";
 import { Button } from "primereact/button";
 import { resolveMvp } from "@/lib/domain/mvp";
+import { requireAdmin } from "@/lib/session";
+import { parseId } from "@/lib/parse-id";
 
 export default async function PartitaDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
-  const matchId = Number(id);
-  if (isNaN(matchId)) notFound();
+  const matchId = parseId(id);
+  if (matchId === null) notFound();
 
   const [match, teams, groups, rounds, bonusTypes, allPlayers, matchBonuses, matchGoals] = await Promise.all([
     db.match.findUnique({
