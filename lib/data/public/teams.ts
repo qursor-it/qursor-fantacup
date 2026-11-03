@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { buildGroupStandings, type GroupStandingRow } from "@/lib/standings";
 import type { PublicMatchRow } from "./matches";
+import { COUNTED_GOAL_WHERE } from "./players";
 import { cachePublicData, PUBLIC_CACHE_TAGS, PUBLIC_CACHE_TTL_SECONDS, revivePublicDates } from "./cache";
 
 export type PublicFootballTeamSummary = {
@@ -100,7 +101,7 @@ export const getPublicFootballTeamDetail = cachePublicData(
       }),
       db.matchGoal.groupBy({
         by: ["scorerId"],
-        where: { scorer: { footballTeamId: teamId } },
+        where: { ...COUNTED_GOAL_WHERE, scorer: { footballTeamId: teamId } },
         _count: { scorerId: true },
         orderBy: { _count: { scorerId: "desc" } },
         take: 5,

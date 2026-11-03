@@ -1,11 +1,17 @@
 import "server-only";
 
-import { MatchStatus } from "@prisma/client";
+import { MatchStatus, type Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { resolveTeamFlag } from "@/lib/flags";
 import { getOfficialMvpPlayerId, mvpPointsFromBonusType } from "@/lib/domain/mvp";
 import { roundPoints } from "@/lib/scoring";
 import { cachePublicData, PUBLIC_CACHE_TAGS, PUBLIC_CACHE_TTL_SECONDS } from "./cache";
+
+// Regola unica per i gol validi: niente autogol e solo partite in corso o concluse.
+export const COUNTED_GOAL_WHERE: Prisma.MatchGoalWhereInput = {
+  isOwnGoal: false,
+  match: { status: { in: [MatchStatus.LIVE, MatchStatus.CONCLUDED] } },
+};
 
 export type PublicScorerRankingRow = {
   id: number;
@@ -93,7 +99,7 @@ export const getPublicScorerRanking = cachePublicData(
         },
       }),
       db.matchGoal.findMany({
-        where: { isOwnGoal: false },
+        where: COUNTED_GOAL_WHERE,
         select: { scorerId: true },
       }),
     ]);
@@ -162,6 +168,7 @@ export const getPublicPlayersGroups = cachePublicData(
         orderBy: { match: { startsAt: "asc" } },
       }),
       db.matchGoal.findMany({
+        where: { match: COUNTED_GOAL_WHERE.match },
         select: { matchId: true, scorerId: true, isOwnGoal: true },
       }),
       db.playerMatchBonus.findMany({
@@ -373,7 +380,7 @@ export async function getPublicPlayerById(id: number): Promise<PublicPlayerGridR
       orderBy: { match: { startsAt: "asc" } },
     }),
     db.matchGoal.findMany({
-      where: { scorerId: id },
+      where: { scorerId: id, match: COUNTED_GOAL_WHERE.match },
       select: { matchId: true, isOwnGoal: true },
     }),
     db.playerMatchBonus.findMany({
