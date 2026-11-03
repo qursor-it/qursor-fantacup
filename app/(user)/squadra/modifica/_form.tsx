@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { useMediaQuery } from "@/components/use-media-query";
 import { useRouter } from "next/navigation";
 import { Button } from "primereact/button";
 import { updateMyFantasyRoster } from "@/app/actions/user/fantasy-teams";
@@ -45,19 +46,12 @@ export default function ModificaSquadraForm({
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(updateMyFantasyRoster, undefined);
+  const isMobile = useMediaQuery("(max-width: 1023px)");
   const [slots, setSlots] = useState<SlotsState>(() => buildInitialSlots(currentRoster));
   const [captainId, setCaptainId] = useState<number | null>(captainPlayerId);
   const [activeSlot, setActiveSlot] = useState<SlotKey | null>(null);
   const [menuSlot, setMenuSlot] = useState<SlotKey | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   useEffect(() => {
     if (state?.success === true) router.push("/dashboard");

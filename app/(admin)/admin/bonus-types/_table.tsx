@@ -97,29 +97,19 @@ export default function BonusTypesTable({ rows }: { rows: Row[] }) {
         </>
       )}
 
-      <EditBonusDialog row={editRow} onClose={() => setEditRow(null)} />
+      <EditBonusDialog key={editRow?.id ?? "closed"} row={editRow} onClose={() => setEditRow(null)} />
     </div>
   );
 }
 
 function EditBonusDialog({ row, onClose }: { row: Row | null; onClose: () => void }) {
   const [state, action, pending] = useActionState(updateBonusType, undefined);
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [points, setPoints] = useState<number | null>(0);
-  const [secret, setSecret] = useState(false);
+  const [code, setCode] = useState(row?.code ?? "");
+  const [name, setName] = useState(row?.name ?? "");
+  const [points, setPoints] = useState<number | null>(row ? Number(row.points) : 0);
+  const [secret, setSecret] = useState(row?.isSecret ?? false);
   const { success, error } = useAppToast();
   const submitted = useRef(false);
-
-  // Sincronizza i valori quando si apre il dialog su una riga.
-  useEffect(() => {
-    if (row) {
-      setCode(row.code);
-      setName(row.name);
-      setPoints(Number(row.points));
-      setSecret(row.isSecret);
-    }
-  }, [row]);
 
   useEffect(() => {
     if (!submitted.current) return;

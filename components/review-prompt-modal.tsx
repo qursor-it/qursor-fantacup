@@ -136,6 +136,7 @@ const dismiss = () => {
           <button
             type="button"
             onClick={handleLater}
+            aria-label="Chiudi"
             className="self-end w-6 h-6 flex items-center justify-center -mb-2"
             style={{ color: "rgba(9,20,76,0.4)" }}
           >

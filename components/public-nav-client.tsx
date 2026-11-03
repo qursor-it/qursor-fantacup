@@ -4,13 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useTransition } from "react";
-import { Button } from "primereact/button";
 import { logout } from "@/app/actions/auth";
 
 type PublicNavUser = {
   email: string;
   name?: string | null;
-  role?: "USER" | "ADMIN";
+  role?: string;
 };
 
 const GV = "#0E3D2B";                          // accento brand lime (switcher + logo)
@@ -47,56 +46,111 @@ const GV_LINKS = [
   { href: "/greenvolley/squadre",      label: "Squadre",     exact: false },
 ];
 
-export default function PublicNavClient() {
-  const pathname = usePathname();
-  const [user, setUser] = useState<PublicNavUser | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
+function DcupDesktopNav({
+  isActive,
+}: {
+  isActive: (href: string, exact?: boolean) => boolean;
+}) {
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const [avatarOpen, setAvatarOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+
+  const isGroupActive = (group: (typeof DCUP_GROUPS)[number]) =>
+    group.items.some((item) => isActive(item.href));
+
+  useEffect(() => {
+    if (!openGroup) return;
+    const handler = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node))
+        setOpenGroup(null);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [openGroup]);
+
+  return (
+    <nav ref={navRef} className="hidden md:flex items-center gap-1 flex-1">
+      {DCUP_GROUPS.map((group) => {
+        const groupActive = isGroupActive(group);
+        const isOpen = openGroup === group.label;
+        return (
+          <div key={group.label} className="relative">
+            <button
+              type="button"
+              onClick={() => setOpenGroup(isOpen ? null : group.label)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
+              style={
+                groupActive || isOpen
+                  ? { background: "var(--primary-light)", color: "var(--primary)" }
+                  : { color: "var(--text-muted)" }
+              }
+            >
+              {group.label}
+              <i
+                className={`pi pi-chevron-down text-[10px] inline-block transition-transform duration-150 ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {isOpen && (
+              <div
+                className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[160px] rounded-xl overflow-hidden"
+                style={{
+                  background: "#fff",
+                  border: "1px solid var(--border-soft)",
+                  boxShadow: "0 8px 24px rgba(1,7,163,0.13)",
+                }}
+              >
+                {group.items.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpenGroup(null)}
+                      className="flex items-center px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-1)]"
+                      style={active ? { color: "var(--primary)" } : { color: "var(--text-primary)" }}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <Link
+        href="/regolamento"
+        className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
+        style={
+          isActive("/regolamento")
+            ? { background: "var(--primary-light)", color: "var(--primary)" }
+            : { color: "var(--text-muted)" }
+        }
+      >
+        Regolamento
+      </Link>
+      <Link
+        href="/supporto"
+        className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
+        style={
+          isActive("/supporto")
+            ? { background: "var(--primary-light)", color: "var(--primary)" }
+            : { color: "var(--text-muted)" }
+        }
+      >
+        Supporto
+      </Link>
+    </nav>
+  );
+}
+
+export default function PublicNavClient({ user }: { user: PublicNavUser | null }) {
+  const pathname = usePathname();
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
   const [logoutPending, startTransition] = useTransition();
   const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadSession() {
-      try {
-        const response = await fetch("/api/auth/session", {
-          cache: "no-store",
-          credentials: "same-origin",
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error("Session request failed");
-
-        const session = await response.json() as {
-          user?: {
-            email?: string | null;
-            name?: string | null;
-            role?: "USER" | "ADMIN";
-          } | null;
-        };
-        const sessionUser = session.user;
-        setUser(
-          sessionUser?.email
-            ? {
-                email: sessionUser.email,
-                name: sessionUser.name,
-                role: sessionUser.role ?? "USER",
-              }
-            : null
-        );
-      } catch {
-        if (!controller.signal.aborted) setUser(null);
-      } finally {
-        if (!controller.signal.aborted) setSessionLoading(false);
-      }
-    }
-
-    loadSession();
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 0);
@@ -144,24 +198,6 @@ export default function PublicNavClient() {
 
   const isActive = (href: string, exact = false) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
-
-  const isGroupActive = (group: (typeof DCUP_GROUPS)[number]) =>
-    group.items.some((item) => isActive(item.href));
-
-
-  useEffect(() => {
-    setOpenGroup(null);
-  }, [isGV]);
-
-  useEffect(() => {
-    if (!openGroup) return;
-    const handler = (e: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(e.target as Node))
-        setOpenGroup(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [openGroup]);
 
   useEffect(() => {
     if (!avatarOpen) return;
@@ -274,80 +310,7 @@ export default function PublicNavClient() {
             })}
           </nav>
         ) : (
-          <nav ref={navRef} className="hidden md:flex items-center gap-1 flex-1">
-            {DCUP_GROUPS.map((group) => {
-              const groupActive = isGroupActive(group);
-              const isOpen = openGroup === group.label;
-              return (
-                <div key={group.label} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setOpenGroup(isOpen ? null : group.label)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
-                    style={
-                      groupActive || isOpen
-                        ? { background: "var(--primary-light)", color: "var(--primary)" }
-                        : { color: "var(--text-muted)" }
-                    }
-                  >
-                    {group.label}
-                    <i
-                      className={`pi pi-chevron-down text-[10px] inline-block transition-transform duration-150 ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div
-                      className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[160px] rounded-xl overflow-hidden"
-                      style={{
-                        background: "#fff",
-                        border: "1px solid var(--border-soft)",
-                        boxShadow: "0 8px 24px rgba(1,7,163,0.13)",
-                      }}
-                    >
-                      {group.items.map((item) => {
-                        const active = isActive(item.href);
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setOpenGroup(null)}
-                            className="flex items-center px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-1)]"
-                            style={active ? { color: "var(--primary)" } : { color: "var(--text-primary)" }}
-                          >
-                            {item.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            <Link
-              href="/regolamento"
-              className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
-              style={
-                isActive("/regolamento")
-                  ? { background: "var(--primary-light)", color: "var(--primary)" }
-                  : { color: "var(--text-muted)" }
-              }
-            >
-              Regolamento
-            </Link>
-            <Link
-              href="/supporto"
-              className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
-              style={
-                isActive("/supporto")
-                  ? { background: "var(--primary-light)", color: "var(--primary)" }
-                  : { color: "var(--text-muted)" }
-              }
-            >
-              Supporto
-            </Link>
-          </nav>
+          <DcupDesktopNav isActive={isActive} />
         )}
 
         {/* Auth */}
@@ -426,21 +389,6 @@ export default function PublicNavClient() {
                 </div>
               )}
             </div>
-          ) : sessionLoading ? (
-            <>
-              <Link
-                href={isGV ? "/profilo?from=greenvolley" : "/profilo"}
-                className="md:hidden w-9 h-9 flex items-center justify-center transition-opacity hover:opacity-70"
-                aria-label="Profilo"
-              >
-                <img src="/icons/profile_circle.svg" width={36} height={36} alt="Profilo" />
-              </Link>
-              <div
-                className="hidden md:block h-9 w-28 rounded-full animate-pulse"
-                style={{ background: "var(--surface-1)" }}
-                aria-hidden="true"
-              />
-            </>
           ) : (
             <>
               <Link

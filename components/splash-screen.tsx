@@ -1,20 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 export const SPLASH_SEEN_STORAGE_KEY = "dcup_splash_seen";
 export const SPLASH_DISMISSED_EVENT = "dcup:splash-dismissed";
 
 const STORAGE_KEY = SPLASH_SEEN_STORAGE_KEY;
 
-export default function SplashScreen() {
-  const [visible, setVisible] = useState(false);
+const listeners = new Set<() => void>();
+let dismissedInMemory = false;
 
-  useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      setVisible(true);
-    }
-  }, []);
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  return () => {
+    listeners.delete(callback);
+  };
+}
+
+function emit() {
+  listeners.forEach((callback) => callback());
+}
+
+function getClientSnapshot() {
+  if (dismissedInMemory) return false;
+  try {
+    return !localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return false;
+  }
+}
+
+export default function SplashScreen() {
+  const visible = useSyncExternalStore(subscribe, getClientSnapshot, () => false);
 
   useEffect(() => {
     if (visible) {
@@ -28,8 +45,13 @@ export default function SplashScreen() {
   if (!visible) return null;
 
   const dismiss = () => {
-    localStorage.setItem(STORAGE_KEY, "1");
-    setVisible(false);
+    dismissedInMemory = true;
+    try {
+      localStorage.setItem(STORAGE_KEY, "1");
+    } catch {
+      // Storage non disponibile: nascondiamo comunque per questa sessione.
+    }
+    emit();
     window.dispatchEvent(new Event(SPLASH_DISMISSED_EVENT));
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
+import { useMediaQuery } from "@/components/use-media-query";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
@@ -31,21 +32,14 @@ export default function NewVolleyMatchForm({
   rounds: SelectItem[];
 }) {
   const [state, formAction, pending] = useActionState(createVolleyMatch, undefined);
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [homeTeamId, setHomeTeamId] = useState<number | null>(null);
   const [awayTeamId, setAwayTeamId] = useState<number | null>(null);
   const [groupId, setGroupId] = useState<number | null>(null);
   const [knockoutRoundId, setKnockoutRoundId] = useState<number | null>(null);
   const [date, setDate] = useState<Date | null>(() => roundedCurrentTime());
   const minDate = startOfToday();
-  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">

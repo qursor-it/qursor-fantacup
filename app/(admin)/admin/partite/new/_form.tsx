@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useActionState } from "react";
+import { useMediaQuery } from "@/components/use-media-query";
 import Link from "next/link";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
@@ -43,22 +44,15 @@ export default function NuovaPartitaForm({
   defaultGroupId: number | null;
 }) {
   const [state, action, pending] = useActionState(createMatch, undefined);
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [homeTeamId, setHomeTeamId] = useState<string>("");
   const [awayTeamId, setAwayTeamId] = useState<string>("");
   const [status, setStatus]         = useState<string>("DRAFT");
   const [date, setDate]             = useState<Date | null>(() => startOfToday());
   const [time, setTime]             = useState<Date | null>(() => roundedCurrentTime());
-  const [isMobile, setIsMobile] = useState(false);
   const [phase, setPhase] = useState<string>(defaultGroupId ? "group" : "");
   const [groupId, setGroupId] = useState<string>(defaultGroupId ? String(defaultGroupId) : "");
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   const allTeamOptions = teams.map((t) => ({ label: t.name, value: String(t.id) }));
   const homeOptions    = allTeamOptions.filter((t) => t.value !== awayTeamId);

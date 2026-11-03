@@ -63,6 +63,7 @@ export default function PlayerDialog({ player, onHide }: { player: PublicPlayerG
           onClick={handleClose}
           className="w-6 h-6 flex items-center justify-center"
           style={{ color: "rgba(9,20,76,0.4)" }}
+          aria-label="Chiudi"
         >
           <i className="pi pi-times text-sm" />
         </button>

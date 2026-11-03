@@ -201,6 +201,7 @@ export default function SquadraMenu({
               <button
                 type="button"
                 onClick={closeSheet}
+                aria-label="Chiudi"
                 className="flex items-center justify-end w-6 h-6 rounded-full hover:bg-black/5 transition-colors"
               >
                 <i className="pi pi-times text-sm" style={{ color: "var(--text-muted)" }} />

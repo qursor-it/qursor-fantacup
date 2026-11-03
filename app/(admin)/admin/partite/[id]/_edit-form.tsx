@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useActionState } from "react";
+import { useMediaQuery } from "@/components/use-media-query";
 import Link from "next/link";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
@@ -68,6 +69,7 @@ export default function EditMatchForm({
   rounds: Round[];
 }) {
   const [state, action, pending] = useActionState(updateMatch, undefined);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const initialStartsAt = safeInitialStartsAt(match.startsAt);
   const defaultDate = formatMatchDateInputValue(initialStartsAt);
@@ -88,15 +90,7 @@ export default function EditMatchForm({
   const [knockoutRoundId, setKnockoutRoundId] = useState<string>(
     match.knockoutRoundId ? String(match.knockoutRoundId) : ""
   );
-  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   const teamOptions = teams.map((t) => ({ label: t.name, value: String(t.id) }));
   const groupOptions = groups.map((g) => ({ label: `Girone ${g.slug} — ${g.name}`, value: String(g.id) }));

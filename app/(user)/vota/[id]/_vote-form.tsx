@@ -45,6 +45,7 @@ function SheetContent({
           onClick={onClose}
           className="w-6 h-6 flex items-center justify-center shrink-0"
           style={{ color: "rgba(9,20,76,0.4)" }}
+          aria-label="Chiudi"
         >
           <i className="pi pi-times text-sm" />
         </button>

@@ -8,6 +8,20 @@ import { resolveMvp } from "@/lib/domain/mvp";
 import { resolveTeamFlag } from "@/lib/flags";
 import VoteForm from "./_vote-form";
 
+function TeamLogo({ team }: { team: { name: string; countryCode: string | null; logoUrl: string | null } | null }) {
+  if (!team) return <div style={{ width: 64, height: 64 }} />;
+  const src = resolveTeamFlag(team);
+  return (
+    <div className="flex items-center justify-center shrink-0" style={{ width: 64, height: 64, padding: 4 }}>
+      {src ? (
+        <img src={src} alt={team.name} className="w-full h-auto object-contain" />
+      ) : (
+        <div className="w-full h-full rounded-full bg-primary flex items-center justify-center text-white font-black text-lg">{team.name.slice(0, 2).toUpperCase()}</div>
+      )}
+    </div>
+  );
+}
+
 export default async function VotaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[1-9]\d*$/.test(id)) notFound();
@@ -78,20 +92,6 @@ export default async function VotaPage({ params }: { params: Promise<{ id: strin
   const mvpPlayer = mvpResolution.status === "resolved"
     ? match.players.find((mp) => mp.playerId === mvpResolution.playerId)?.player
     : null;
-
-  const TeamLogo = ({ team }: { team: { name: string; countryCode: string | null; logoUrl: string | null } | null }) => {
-    if (!team) return <div style={{ width: 64, height: 64 }} />;
-    const src = resolveTeamFlag(team);
-    return (
-      <div className="flex items-center justify-center shrink-0" style={{ width: 64, height: 64, padding: 4 }}>
-        {src ? (
-          <img src={src} alt={team.name} className="w-full h-auto object-contain" />
-        ) : (
-          <div className="w-full h-full rounded-full bg-primary flex items-center justify-center text-white font-black text-lg">{team.name.slice(0, 2).toUpperCase()}</div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="max-w-lg mx-auto w-full flex flex-col gap-10">
@@ -187,7 +187,7 @@ export default async function VotaPage({ params }: { params: Promise<{ id: strin
               MVP ufficiale: {mvpPlayer.name}
             </p>
           ) : mvpResolution.status === "tied" ? (
-            <p className="mt-2 text-xs text-black/50">Pari voti: l'MVP sarà confermato da un admin.</p>
+            <p className="mt-2 text-xs text-black/50">Pari voti: l&apos;MVP sarà confermato da un admin.</p>
           ) : (
             <p className="mt-2 text-xs text-black/50">Nessun MVP assegnato per questa partita.</p>
           )}

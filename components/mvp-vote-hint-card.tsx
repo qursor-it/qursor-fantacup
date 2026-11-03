@@ -1,9 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 const VISITS_KEY = "fdc:mvpHint:visits";
 const DISMISSED_KEY = "fdc:mvpHint:dismissed";
+
+const listeners = new Set<() => void>();
+let dismissedInMemory = false;
+
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  return () => {
+    listeners.delete(callback);
+  };
+}
+
+function emit() {
+  listeners.forEach((callback) => callback());
+}
+
+function getClientSnapshot() {
+  if (dismissedInMemory) return false;
+  try {
+    if (localStorage.getItem(DISMISSED_KEY) === "1") return false;
+    return Number(localStorage.getItem(VISITS_KEY) ?? "0") >= 2;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Card informativa sul voto MVP, mostrata sopra le "Prossime partite" nella homepage.
@@ -12,7 +36,7 @@ const DISMISSED_KEY = "fdc:mvpHint:dismissed";
  * Parte da `null` (server + primo render client) per evitare mismatch di idratazione.
  */
 export default function MvpVoteHintCard() {
-  const [visible, setVisible] = useState(false);
+  const visible = useSyncExternalStore(subscribe, getClientSnapshot, () => false);
   const ran = useRef(false);
 
   useEffect(() => {
@@ -26,20 +50,20 @@ export default function MvpVoteHintCard() {
 
       const visits = Number(localStorage.getItem(VISITS_KEY) ?? "0") + 1;
       localStorage.setItem(VISITS_KEY, String(visits));
-
-      if (visits >= 2) setVisible(true);
     } catch {
       // localStorage non disponibile (modalita privata / storage disabilitato): non mostrare nulla.
     }
+    emit();
   }, []);
 
   function dismiss() {
+    dismissedInMemory = true;
     try {
       localStorage.setItem(DISMISSED_KEY, "1");
     } catch {
       // Se non possiamo persistere, nascondiamo comunque per la sessione corrente.
     }
-    setVisible(false);
+    emit();
   }
 
   if (!visible) return null;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
+import { useMediaQuery } from "@/components/use-media-query";
 import { useRouter } from "next/navigation";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
@@ -55,30 +56,18 @@ function createEmptySlots(): SlotsState {
 export default function CreaSquadraForm({ players, tournamentAlreadyStarted }: { players: Player[]; tournamentAlreadyStarted?: boolean }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(createFantasyTeam, undefined);
+  const isMobile = useMediaQuery("(max-width: 1023px)");
   const [slots, setSlots] = useState<SlotsState>(() => createEmptySlots());
   const [captainId, setCaptainId] = useState<number | null>(null);
   const [teamName, setTeamName] = useState("");
   const [activeSlot, setActiveSlot] = useState<SlotKey | null>(null);
   const [menuSlot, setMenuSlot] = useState<SlotKey | null>(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const [shareVisible, setShareVisible] = useState(false);
+  const [shareClosed, setShareClosed] = useState(false);
   const [rulesVisible, setRulesVisible] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  useEffect(() => {
-    if (state?.success === true) {
-      setShareVisible(true);
-    }
-  }, [state]);
+  const shareVisible = state?.success === true && !shareClosed;
 
   const selectedPlayers = useMemo(
     () =>
@@ -558,7 +547,7 @@ export default function CreaSquadraForm({ players, tournamentAlreadyStarted }: {
       <Dialog
         visible={shareVisible}
         onHide={() => {
-          setShareVisible(false);
+          setShareClosed(true);
           router.push("/squadra");
         }}
         closable={false}
@@ -591,7 +580,7 @@ export default function CreaSquadraForm({ players, tournamentAlreadyStarted }: {
           <button
             type="button"
             onClick={() => {
-              setShareVisible(false);
+              setShareClosed(true);
               router.push("/squadra");
             }}
             className="mt-3 w-full text-center text-sm font-medium transition-colors hover:text-[var(--primary)]"

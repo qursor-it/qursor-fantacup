@@ -149,6 +149,7 @@ export default function MvpVoteBanner({ votes }: { votes: PendingVote[] }) {
               <button
                 type="button"
                 onClick={closeSheet}
+                aria-label="Chiudi"
                 className="flex items-center justify-end w-6 h-6 rounded-full hover:bg-(--surface-1) transition-colors"
               >
                 <i className="pi pi-times text-sm" style={{ color: "var(--text-muted)" }} />

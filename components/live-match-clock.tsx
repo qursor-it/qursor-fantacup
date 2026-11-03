@@ -35,7 +35,6 @@ export default function LiveMatchClock({ elapsedMsAtLoad }: { elapsedMsAtLoad: n
 
   useEffect(() => {
     mountTimeRef.current = Date.now();
-    setClock(computeClock(elapsedMsAtLoad));
 
     const id = setInterval(() => {
       const sinceMount = Date.now() - mountTimeRef.current;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
+import type { ActionResult } from "@/app/actions/admin/football-teams";
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { Button } from "primereact/button";
@@ -10,14 +10,14 @@ import { createBonusType } from "@/app/actions/admin/bonus-types";
 import { useAppToast } from "@/components/toast-provider";
 
 export default function NewBonusTypeForm() {
-  const [state, action, pending] = useActionState(createBonusType, undefined);
+  const [state, setState] = useState<ActionResult | undefined>(undefined);
+  const [pending, startTransition] = useTransition();
   const [visible, setVisible] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [points, setPoints] = useState<number | null>(0);
   const [secret, setSecret] = useState(false);
   const { success, error } = useAppToast();
-  const submitted = useRef(false);
 
   function reset() {
     setCode("");
@@ -26,18 +26,19 @@ export default function NewBonusTypeForm() {
     setSecret(false);
   }
 
-  useEffect(() => {
-    if (!submitted.current) return;
-    if (state?.message) {
-      error(state.message);
-      submitted.current = false;
-    } else if (state && !state.errors) {
-      success("Tipo bonus creato.");
-      submitted.current = false;
-      reset();
-      setVisible(false);
-    }
-  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await createBonusType(undefined, formData);
+      setState(result);
+      if (result?.message) {
+        error(result.message);
+      } else if (result && !result.errors) {
+        success("Tipo bonus creato.");
+        reset();
+        setVisible(false);
+      }
+    });
+  }
 
   return (
     <div className="flex justify-end">
@@ -85,11 +86,7 @@ export default function NewBonusTypeForm() {
           </div>
         </div>
 
-        <form
-          action={action}
-          onSubmit={() => { submitted.current = true; }}
-          className="flex flex-col gap-4 p-5"
-        >
+        <form action={handleSubmit} className="flex flex-col gap-4 p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>

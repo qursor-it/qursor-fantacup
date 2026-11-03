@@ -1,36 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import type { RankEntry } from "@/lib/scoring";
 
-export default function SquadreFantasyRankings({ rankings }: { rankings: RankEntry[] }) {
-  const [myUserId, setMyUserId] = useState<number | null>(null);
+export default function SquadreFantasyRankings({
+  rankings,
+  myUserId,
+}: {
+  rankings: RankEntry[];
+  myUserId: number | null;
+}) {
   const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadSession() {
-      try {
-        const response = await fetch("/api/auth/session", {
-          cache: "no-store",
-          credentials: "same-origin",
-          signal: controller.signal,
-        });
-        if (!response.ok) return;
-
-        const session = await response.json() as { user?: { id?: string | null } | null };
-        const id = Number(session.user?.id);
-        if (!controller.signal.aborted) setMyUserId(Number.isInteger(id) && id > 0 ? id : null);
-      } catch {
-        if (!controller.signal.aborted) setMyUserId(null);
-      }
-    }
-
-    loadSession();
-    return () => controller.abort();
-  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

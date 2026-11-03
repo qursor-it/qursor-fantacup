@@ -56,21 +56,11 @@ const GV_GROUPS = [
   },
 ];
 
-export default function TopBar({
-  initials,
-  userName,
-}: {
-  initials: string;
-  userName: string;
-}) {
+function AdminDesktopNav({ isGV }: { isGV: boolean }) {
   const pathname = usePathname();
-  const [avatarOpen, setAvatarOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const avatarRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
-  const [logoutPending, startTransition] = useTransition();
 
-  const isGV = pathname.startsWith("/admin/greenvolley");
   const GROUPS = isGV ? GV_GROUPS : DCUP_GROUPS;
   const primary = isGV ? GV : "var(--primary)";
   const primaryLight = isGV ? "#f0fde7" : "var(--primary-light)";
@@ -84,16 +74,6 @@ export default function TopBar({
     group.items.some((item) => isActive(item.href));
 
   useEffect(() => {
-    if (!avatarOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (avatarRef.current && !avatarRef.current.contains(e.target as Node))
-        setAvatarOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [avatarOpen]);
-
-  useEffect(() => {
     if (!openGroup) return;
     const handler = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node))
@@ -103,9 +83,111 @@ export default function TopBar({
     return () => document.removeEventListener("mousedown", handler);
   }, [openGroup]);
 
+  return (
+    <nav ref={navRef} className="hidden md:flex items-center gap-1 flex-1">
+      {GROUPS.map((group) => {
+        if (group.label === null) {
+          const item = group.items[0];
+          const active = isActive(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
+              style={
+                active
+                  ? { background: primaryLight, color: primary }
+                  : { color: "var(--text-muted)" }
+              }
+            >
+              {item.label}
+            </Link>
+          );
+        }
+
+        const groupActive = isGroupActive(group);
+        const isOpen = openGroup === group.label;
+
+        return (
+          <div key={group.label} className="relative">
+            <button
+              type="button"
+              onClick={() => setOpenGroup(isOpen ? null : group.label!)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
+              style={
+                groupActive || isOpen
+                  ? { background: primaryLight, color: primary }
+                  : { color: "var(--text-muted)" }
+              }
+            >
+              {group.label}
+              <i
+                className={`pi pi-chevron-down text-[10px] inline-block transition-transform duration-150 ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {isOpen && (
+              <div
+                className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[160px] rounded-xl overflow-hidden"
+                style={{
+                  background: "#fff",
+                  border: "1px solid var(--border-soft)",
+                  boxShadow: "0 8px 24px rgba(1,7,163,0.13)",
+                }}
+              >
+                {group.items.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpenGroup(null)}
+                      className="flex items-center px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-1)]"
+                      style={
+                        active
+                          ? { color: primary }
+                          : { color: "var(--text-primary)" }
+                      }
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+export default function TopBar({
+  initials,
+  userName,
+}: {
+  initials: string;
+  userName: string;
+}) {
+  const pathname = usePathname();
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const avatarRef = useRef<HTMLDivElement>(null);
+  const [logoutPending, startTransition] = useTransition();
+
+  const isGV = pathname.startsWith("/admin/greenvolley");
+  const primary = isGV ? GV : "var(--primary)";
+
   useEffect(() => {
-    setOpenGroup(null);
-  }, [isGV]);
+    if (!avatarOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (avatarRef.current && !avatarRef.current.contains(e.target as Node))
+        setAvatarOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [avatarOpen]);
 
   return (
     <header
@@ -177,83 +259,7 @@ export default function TopBar({
         </div>
 
         {/* Desktop nav con dropdown */}
-        <nav ref={navRef} className="hidden md:flex items-center gap-1 flex-1">
-          {GROUPS.map((group) => {
-            if (group.label === null) {
-              const item = group.items[0];
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
-                  style={
-                    active
-                      ? { background: primaryLight, color: primary }
-                      : { color: "var(--text-muted)" }
-                  }
-                >
-                  {item.label}
-                </Link>
-              );
-            }
-
-            const groupActive = isGroupActive(group);
-            const isOpen = openGroup === group.label;
-
-            return (
-              <div key={group.label} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setOpenGroup(isOpen ? null : group.label!)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap"
-                  style={
-                    groupActive || isOpen
-                      ? { background: primaryLight, color: primary }
-                      : { color: "var(--text-muted)" }
-                  }
-                >
-                  {group.label}
-                  <i
-                    className={`pi pi-chevron-down text-[10px] inline-block transition-transform duration-150 ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {isOpen && (
-                  <div
-                    className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[160px] rounded-xl overflow-hidden"
-                    style={{
-                      background: "#fff",
-                      border: "1px solid var(--border-soft)",
-                      boxShadow: "0 8px 24px rgba(1,7,163,0.13)",
-                    }}
-                  >
-                    {group.items.map((item) => {
-                      const active = isActive(item.href);
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setOpenGroup(null)}
-                          className="flex items-center px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-1)]"
-                          style={
-                            active
-                              ? { color: primary }
-                              : { color: "var(--text-primary)" }
-                          }
-                        >
-                          {item.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
+        <AdminDesktopNav key={isGV ? "gv" : "dcup"} isGV={isGV} />
 
         {/* Avatar + dropdown */}
         <div ref={avatarRef} className="ml-auto relative flex-shrink-0">

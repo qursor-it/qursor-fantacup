@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useActionState } from "react";
+import { useRef, useState, useTransition } from "react";
+import type { ActionResult } from "@/app/actions/admin/football-teams";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import { confirmPopup, ConfirmPopup } from "primereact/confirmpopup";
@@ -9,22 +9,22 @@ import { closeScoringPhaseAction } from "@/app/actions/admin/scoring-phases";
 import { useAppToast } from "@/components/toast-provider";
 
 export default function ClosePhaseForm() {
-  const [state, action, pending] = useActionState(closeScoringPhaseAction, undefined);
+  const [state, setState] = useState<ActionResult | undefined>(undefined);
+  const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const { success, error } = useAppToast();
-  const submitted = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (!submitted.current) return;
-    if (state?.message && !state.errors) {
-      success(state.message);
-      setName("");
-      submitted.current = false;
-    } else if (state?.errors) {
-      submitted.current = false;
-    }
-  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await closeScoringPhaseAction(undefined, formData);
+      setState(result);
+      if (result?.message && !result.errors) {
+        success(result.message);
+        setName("");
+      }
+    });
+  }
 
   function confirmClose(e: React.MouseEvent) {
     if (!name.trim()) {
@@ -38,7 +38,6 @@ export default function ClosePhaseForm() {
       acceptLabel: "Chiudi fase",
       rejectLabel: "Annulla",
       accept: () => {
-        submitted.current = true;
         formRef.current?.requestSubmit();
       },
     });
@@ -47,7 +46,7 @@ export default function ClosePhaseForm() {
   return (
     <>
       <ConfirmPopup />
-      <form ref={formRef} action={action} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form ref={formRef} action={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <input type="hidden" name="name" value={name} />
         <div className="flex-1 max-w-xs">
           <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "var(--text-secondary)" }}>

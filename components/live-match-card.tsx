@@ -90,7 +90,7 @@ export default function LiveMatchCard({ match: m }: Props) {
 
           {/* Clock */}
           <div className="flex flex-1 justify-end shrink-0">
-            <LiveMatchClock elapsedMsAtLoad={elapsedMsAtLoad} />
+            <LiveMatchClock key={elapsedMsAtLoad} elapsedMsAtLoad={elapsedMsAtLoad} />
           </div>
         </div>
 
