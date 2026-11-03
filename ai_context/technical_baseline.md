@@ -112,4 +112,4 @@ Il rate limit usa l'IP del client ricavato da `x-forwarded-for` partendo da dest
 
 ## Più tornei (un'installazione per torneo)
 
-Lo stesso codice serve tornei diversi, ognuno con il suo deploy, database, dominio e app PWABuilder. Il torneo si sceglie al build con `NEXT_PUBLIC_TOURNAMENT` (default `dcup`); la configurazione sta in `tournaments/<id>.ts` (tipo `TournamentConfig` in `tournaments/index.ts`): identità (nome, logo, icona, edizione, link store) e regole (portieri, giocatori di movimento, moltiplicatore capitano, finestra MVP, punti MVP di default). `lib/site.ts` espone `siteConfig`/`appStoreConfig` derivati da lì. Il testo del regolamento è ancora specifico del DCup.
+Configurazione per torneo in `tournaments/<id>.ts`, scelta al build con `NEXT_PUBLIC_TOURNAMENT` (default `dcup`). Decisione, funzionamento e passi successivi in `multi_tournament.md`.
