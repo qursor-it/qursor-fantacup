@@ -117,7 +117,7 @@ export default function PublicBottomNav() {
     );
   }
 
-  // ─── DCup ───────────────────────────────────────────────────────────────────
+  // ─── Torneo ───────────────────────────────────────────────────────────────────
   const moreIsActive = pathname.startsWith("/altro");
 
   const DCUP_MAIN = [

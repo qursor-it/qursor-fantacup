@@ -1,8 +1,10 @@
 import { PlayerRole } from "@prisma/client";
 
-const ROSTER_SIZE = 5;
-const REQUIRED_GK = 1;
-const REQUIRED_PLAYERS = 4;
+import { tournament } from "@/tournaments";
+
+const REQUIRED_GK = tournament.rules.goalkeepers;
+const REQUIRED_PLAYERS = tournament.rules.outfieldPlayers;
+export const ROSTER_SIZE = REQUIRED_GK + REQUIRED_PLAYERS;
 
 export type RosterPlayer = {
   playerId: number;

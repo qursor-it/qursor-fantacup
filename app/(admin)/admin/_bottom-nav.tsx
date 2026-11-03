@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "primereact/button";
+import { siteConfig } from "@/lib/site";
 
 const GV = "#0E3D2B";
 
@@ -89,7 +90,7 @@ export default function BottomNav() {
                   : { background: "transparent", color: "var(--text-disabled)" }
               }
             >
-              DCup
+              {siteConfig.shortName}
             </Link>
             <Link
               href="/admin/greenvolley"

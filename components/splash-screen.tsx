@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { siteConfig } from "@/lib/site";
 
 export const SPLASH_SEEN_STORAGE_KEY = "dcup_splash_seen";
 export const SPLASH_DISMISSED_EVENT = "dcup:splash-dismissed";
@@ -84,8 +85,7 @@ export default function SplashScreen() {
               className="flex flex-col text-4xl items-center uppercase leading-tight gap-4"
               style={{ fontFamily: "var(--font-tallica)"}}
             >
-              <span>Danimarca&apos;s</span>
-              <span>Cup 26</span>
+              {siteConfig.titleLines.map((line) => <span key={line}>{line}</span>)}
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import BackButton from "@/components/back-button";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contatti",
@@ -39,7 +40,7 @@ export default async function ContattiPage({ searchParams }: { searchParams: Pro
           </h2>
           <ul className="text-base leading-relaxed space-y-2" style={{ color: "#000" }}>
             <li>
-              Danimarca&apos;s Cup:{" "}
+              {siteConfig.name}:{" "}
               <a href="https://www.instagram.com/danimarcas_cup/" target="_blank" rel="noreferrer"
                 className="underline underline-offset-2 hover:opacity-70 transition-opacity">
                 instagram.com/danimarcas_cup

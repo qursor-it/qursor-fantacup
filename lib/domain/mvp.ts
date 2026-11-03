@@ -1,9 +1,10 @@
+import { tournament } from "@/tournaments";
 import { isMvpWindowOpen } from "./vote";
 
 export type MvpVote = { playerId: number };
 
 /** Punti di default per l'MVP ufficiale se il BonusType `MVP` non e configurato. */
-export const DEFAULT_MVP_POINTS = 3;
+export const DEFAULT_MVP_POINTS = tournament.rules.defaultMvpPoints;
 
 /** Punti MVP dal BonusType `MVP` (se presente), altrimenti DEFAULT_MVP_POINTS. */
 export function mvpPointsFromBonusType(

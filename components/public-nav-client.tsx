@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useTransition } from "react";
 import { logout } from "@/app/actions/auth";
+import { siteConfig } from "@/lib/site";
 
 type PublicNavUser = {
   email: string;
@@ -231,15 +232,15 @@ export default function PublicNavClient({ user }: { user: PublicNavUser | null }
             {mobileTitle}
           </h1>
         ) : (
-          /* Other pages: DCup / GV switcher pills */
+          /* Other pages: torneo / GV switcher pills */
           <div className="flex md:hidden items-center gap-3 flex-1 min-w-0">
             <Link
               href="/"
               className="flex items-center gap-2 px-3 py-2 rounded-full text-white shrink-0 transition-colors"
               style={{ fontSize: 12, fontWeight: !isGV ? 600 : 500, background: !isGV ? "#09144C" : "rgba(0,0,0,0.25)" }}
             >
-              <img src="/icons/dcup.svg" width={23} height={24} alt="DCup" />
-              <span>DCup</span>
+              <img src={siteConfig.icon} width={23} height={24} alt={siteConfig.shortName} />
+              <span>{siteConfig.shortName}</span>
             </Link>
             <Link
               href="/greenvolley"
@@ -255,10 +256,10 @@ export default function PublicNavClient({ user }: { user: PublicNavUser | null }
         {/* ── Desktop logo + switcher ────────────────────────────── */}
         <Link href={isGV ? "/greenvolley" : "/"} className="hidden md:flex items-center gap-2 flex-shrink-0">
           <Image
-            src={isGV ? "/logo_greenvolley.png" : "/logo_dc.png"}
+            src={isGV ? "/logo_greenvolley.png" : siteConfig.logo}
             width={28}
             height={28}
-            alt={isGV ? "GreenVolley logo" : "DCup logo"}
+            alt={isGV ? "GreenVolley logo" : `${siteConfig.shortName} logo`}
             className="rounded-lg"
           />
           <span
@@ -268,7 +269,7 @@ export default function PublicNavClient({ user }: { user: PublicNavUser | null }
             {isGV ? (
               <>GREEN<span style={{ color: GV }}>VOLLEY</span></>
             ) : (
-              <><span style={{ color: "var(--primary)" }}>DCUP</span>{" "}<span style={{ color: "#E8A000" }}>26</span></>
+              <><span style={{ color: "var(--primary)" }}>{siteConfig.shortName}</span>{" "}<span style={{ color: "#E8A000" }}>{siteConfig.edition}</span></>
             )}
           </span>
         </Link>
@@ -281,7 +282,7 @@ export default function PublicNavClient({ user }: { user: PublicNavUser | null }
             className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wide transition-colors"
             style={!isGV ? { background: "#fff", color: "var(--primary)", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" } : { color: "var(--text-disabled)" }}
           >
-            DCup
+            {siteConfig.shortName}
           </Link>
           <Link
             href="/greenvolley"

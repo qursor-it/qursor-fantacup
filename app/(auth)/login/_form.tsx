@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { login } from "@/app/actions/auth";
+import { siteConfig } from "@/lib/site";
 
 export default function LoginForm() {
   const [state, action, pending] = useActionState(login, undefined);
@@ -81,7 +82,7 @@ export default function LoginForm() {
           >
             pagina Instagram ufficiale
           </a>{" "}
-          di Danimarcas Cup.
+          di {siteConfig.name}.
         </p>
       </form>
     </>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { siteConfig } from "@/lib/site";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -179,7 +180,7 @@ export default async function HomePage({
               className="font-display font-black text-white uppercase leading-[0.88] tracking-tight"
               style={{ fontSize: "clamp(4rem, 20vw, 7.5rem)" }}
             >
-              DCUP <span style={{ color: "#E8A000" }}>26</span>
+              {siteConfig.shortName} <span style={{ color: "#E8A000" }}>{siteConfig.edition}</span>
             </h1>
             <p
               className="text-sm md:text-base leading-relaxed max-w-xs"
@@ -405,7 +406,7 @@ export default async function HomePage({
                   Fanta
                 </p>
                 <p className="text-sm text-black font-normal max-w-48">
-                  Gestisci il tuo dream team in Danimarca&apos;s Cup!
+                  Gestisci il tuo dream team in {siteConfig.name}!
                 </p>
                 <p className="text-sm font-semibold text-black">Gioca al Fanta</p>
               </div>

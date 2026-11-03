@@ -3,6 +3,7 @@ import MobileOnlyGate from "@/components/mobile-only-gate";
 import { getCurrentUser } from "@/lib/session";
 import ProfiloLoggedIn from "./_logged-in";
 import pkg from "@/package.json";
+import { siteConfig } from "@/lib/site";
 
 export default async function ProfiloPage({
   searchParams,
@@ -38,7 +39,7 @@ export default async function ProfiloPage({
               className="uppercase text-base leading-snug"
               style={{ fontFamily: "var(--font-tallica)", color: "var(--text-primary)", fontWeight: 500 }}
             >
-              {isGV ? "Ottieni altro da GreenVolley" : "Ottieni altro dalla Danimarca’s Cup"}
+              {isGV ? "Ottieni altro da GreenVolley" : `Ottieni altro da ${siteConfig.name}`}
             </h1>
             <p className="text-sm text-black">
               {isGV ? "Crea il tuo account e accedi a tutti i contenuti." : "Crea il tuo account e partecipa al fanta."}

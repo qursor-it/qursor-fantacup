@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useTransition } from "react";
 import { logout } from "@/app/actions/auth";
+import { siteConfig } from "@/lib/site";
 
 const GV = "#0E3D2B";
 
@@ -205,10 +206,10 @@ export default function TopBar({
           className="flex items-center gap-2 flex-shrink-0"
         >
           <Image
-            src={isGV ? "/logo_greenvolley.png" : "/logo_dc.png"}
+            src={isGV ? "/logo_greenvolley.png" : siteConfig.logo}
             width={28}
             height={28}
-            alt={isGV ? "GreenVolley logo" : "DCup logo"}
+            alt={isGV ? "GreenVolley logo" : `${siteConfig.shortName} logo`}
             className="rounded-lg"
           />
           <span
@@ -243,7 +244,7 @@ export default function TopBar({
                 : { color: "var(--text-disabled)", background: "transparent" }
             }
           >
-            <span className="block truncate">DCup</span>
+            <span className="block truncate">{siteConfig.shortName}</span>
           </Link>
           <Link
             href="/admin/greenvolley"

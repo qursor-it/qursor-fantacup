@@ -85,8 +85,8 @@ export function DesktopServicePage() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/icons/dcup.svg"
-              alt="Danimarca's Cup logo"
+              src={siteConfig.icon}
+              alt={`${siteConfig.name} logo`}
               width={56}
               height={58}
             />

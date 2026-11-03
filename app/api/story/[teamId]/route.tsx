@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { appStoreConfig, siteConfig } from "@/lib/site";
 import { computeTeamHistory, getTeamPhaseBreakdown, roundPoints } from "@/lib/scoring";
 import { resolveTeamFlag } from "@/lib/flags";
 import { checkRateLimit, getClientIp, storyImageLimiter } from "@/lib/rate-limit";
@@ -238,7 +239,7 @@ export async function GET(
             />
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>
-                FANTA DCUP
+                {`FANTA ${siteConfig.shortName.toUpperCase()}`}
               </div>
               <div
                 style={{
@@ -533,7 +534,7 @@ export async function GET(
                 lineHeight: 1,
               }}
             >
-              Scarica l&apos;app &quot;Danimarca&apos;s Cup&quot;
+              {`Scarica l'app "${appStoreConfig.appName}"`}
             </div>
             <div
               style={{

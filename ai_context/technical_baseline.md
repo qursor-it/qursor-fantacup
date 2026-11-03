@@ -109,3 +109,7 @@ Quando la password viene ruotata o adottata con valore diverso, `passwordChanged
 
 Il rate limit usa l'IP del client ricavato da `x-forwarded-for` partendo da destra, perche i valori a sinistra possono essere iniettati dal client. La variabile d'ambiente `TRUSTED_PROXY_HOPS` (intero, default `1`) indica quanti reverse proxy fidati stanno davanti al container e deve corrispondere al deployment reale: con un solo proxy in front si lascia `1`, con due si imposta `2`, mentre `0` prende comunque il valore piu a destra dell'header.
 
+
+## Più tornei (un'installazione per torneo)
+
+Lo stesso codice serve tornei diversi, ognuno con il suo deploy, database, dominio e app PWABuilder. Il torneo si sceglie al build con `NEXT_PUBLIC_TOURNAMENT` (default `dcup`); la configurazione sta in `tournaments/<id>.ts` (tipo `TournamentConfig` in `tournaments/index.ts`): identità (nome, logo, icona, edizione, link store) e regole (portieri, giocatori di movimento, moltiplicatore capitano, finestra MVP, punti MVP di default). `lib/site.ts` espone `siteConfig`/`appStoreConfig` derivati da lì. Il testo del regolamento è ancora specifico del DCup.

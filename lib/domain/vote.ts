@@ -1,9 +1,11 @@
+import { tournament } from "@/tournaments";
+
 export type VoteValidationError =
   | "PLAYER_NOT_IN_MATCH"
   | "VOTING_WINDOW_CLOSED"
   | "ALREADY_VOTED";
 
-export const MVP_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
+export const MVP_WINDOW_MS = tournament.rules.mvpWindowMinutes * 60 * 1000;
 
 export function isMvpWindowOpen(concludedAt: Date | null): boolean {
   if (!concludedAt) return false;

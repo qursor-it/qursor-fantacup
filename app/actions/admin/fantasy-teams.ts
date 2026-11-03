@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
-import { validateRoster } from "@/lib/domain/roster";
+import { ROSTER_SIZE, validateRoster } from "@/lib/domain/roster";
 import { fantasyTeamNameSchema } from "@/lib/domain/fantasy-team";
 import type { ActionResult } from "./football-teams";
 import { revalidateFantasyPublicPaths } from "./revalidate-public";
@@ -15,7 +15,7 @@ const UpdateRosterSchema = z.object({
   fantasyTeamId: z.coerce.number().int().positive(),
   name: fantasyTeamNameSchema,
   captainPlayerId: z.coerce.number().int().positive("Capitano obbligatorio"),
-  playerIds: z.array(z.coerce.number().int().positive()).length(5, "Servono esattamente 5 giocatori"),
+  playerIds: z.array(z.coerce.number().int().positive()).length(ROSTER_SIZE, `Servono esattamente ${ROSTER_SIZE} giocatori`),
 });
 
 export async function adminUpdateFantasyRoster(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
@@ -45,7 +45,7 @@ export async function adminUpdateFantasyRoster(_prev: ActionResult | undefined, 
     select: { id: true, role: true, footballTeamId: true },
   });
 
-  if (players.length !== 5) return { message: "Uno o più giocatori non trovati." };
+  if (players.length !== ROSTER_SIZE) return { message: "Uno o più giocatori non trovati." };
 
   const rosterError = validateRoster(
     players.map((p) => ({ playerId: p.id, role: p.role as PlayerRole, footballTeamId: p.footballTeamId })),

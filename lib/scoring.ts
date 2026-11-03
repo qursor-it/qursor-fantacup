@@ -2,6 +2,9 @@ import { db } from "./db";
 import { MatchStatus } from "@prisma/client";
 import { getOfficialMvpPlayerId, mvpPointsFromBonusType } from "./domain/mvp";
 import { measureServerTiming } from "./perf";
+import { tournament } from "@/tournaments";
+
+const { captainMultiplier } = tournament.rules;
 
 export type PlayerMatchScore = {
   playerId: number;
@@ -20,7 +23,7 @@ export type PlayerMatchScore = {
   mvpPoints: number;
   basePoints: number;
   isCaptain: boolean;
-  finalPoints: number; // basePoints * (isCaptain ? 2 : 1)
+  finalPoints: number; // basePoints * (isCaptain ? captainMultiplier : 1)
 };
 
 export type MatchScore = {
@@ -112,7 +115,7 @@ export function teamPointsFromPlayerTotals(
 ): number {
   const rosterTotal = team.players.reduce((sum, { playerId }) => sum + (playerTotals.get(playerId) ?? 0), 0);
   const captainTotal = playerTotals.get(team.captainPlayerId) ?? 0;
-  return roundPoints(rosterTotal + captainTotal);
+  return roundPoints(rosterTotal + captainTotal * (captainMultiplier - 1));
 }
 
 /**

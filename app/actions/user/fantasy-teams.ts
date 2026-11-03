@@ -5,7 +5,8 @@ import { z } from "zod";
 import { PlayerRole, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
-import { validateRoster } from "@/lib/domain/roster";
+import { ROSTER_SIZE, validateRoster } from "@/lib/domain/roster";
+import { tournament } from "@/tournaments";
 import { fantasyTeamNameSchema } from "@/lib/domain/fantasy-team";
 import { getActiveEditWindow } from "@/lib/roster-edit-window";
 import { countSubstitutions } from "@/lib/domain/roster-edit-window";
@@ -21,7 +22,7 @@ const Schema = z.object({
   captainPlayerId: z.coerce.number().int().positive("Capitano obbligatorio"),
   playerIds: z
     .array(z.coerce.number().int().positive())
-    .length(5, "Seleziona esattamente 5 giocatori"),
+    .length(ROSTER_SIZE, `Seleziona esattamente ${ROSTER_SIZE} giocatori`),
 });
 
 function isUniqueViolation(e: unknown): boolean {
@@ -29,11 +30,11 @@ function isUniqueViolation(e: unknown): boolean {
 }
 
 const ROSTER_ERROR_MESSAGES: Record<string, string> = {
-  WRONG_SIZE: "Seleziona esattamente 5 giocatori.",
-  WRONG_GK_COUNT: "Devi avere esattamente 1 portiere.",
-  WRONG_PLAYER_COUNT: "Devi avere esattamente 4 giocatori di movimento.",
-  DUPLICATE_TEAM: "I 5 giocatori devono appartenere a 5 squadre reali diverse.",
-  CAPTAIN_NOT_IN_ROSTER: "Il capitano deve essere uno dei 5 giocatori selezionati.",
+  WRONG_SIZE: `Seleziona esattamente ${ROSTER_SIZE} giocatori.`,
+  WRONG_GK_COUNT: `Devi avere esattamente ${tournament.rules.goalkeepers} ${tournament.rules.goalkeepers === 1 ? "portiere" : "portieri"}.`,
+  WRONG_PLAYER_COUNT: `Devi avere esattamente ${tournament.rules.outfieldPlayers} giocatori di movimento.`,
+  DUPLICATE_TEAM: `I ${ROSTER_SIZE} giocatori devono appartenere a ${ROSTER_SIZE} squadre reali diverse.`,
+  CAPTAIN_NOT_IN_ROSTER: `Il capitano deve essere uno dei ${ROSTER_SIZE} giocatori selezionati.`,
 };
 
 async function updateFantasyPublicCache() {
@@ -74,7 +75,7 @@ export async function createFantasyTeam(
     select: { id: true, role: true, footballTeamId: true },
   });
 
-  if (players.length !== 5) {
+  if (players.length !== ROSTER_SIZE) {
     return { success: false, message: "Uno o più giocatori non trovati." };
   }
 
@@ -122,7 +123,7 @@ const UpdateSchema = z.object({
   captainPlayerId: z.coerce.number().int().positive("Capitano obbligatorio"),
   playerIds: z
     .array(z.coerce.number().int().positive())
-    .length(5, "Seleziona esattamente 5 giocatori"),
+    .length(ROSTER_SIZE, `Seleziona esattamente ${ROSTER_SIZE} giocatori`),
 });
 
 /**
@@ -161,7 +162,7 @@ export async function updateMyFantasyRoster(
     where: { id: { in: playerIds } },
     select: { id: true, role: true, footballTeamId: true },
   });
-  if (players.length !== 5) {
+  if (players.length !== ROSTER_SIZE) {
     return { success: false, message: "Uno o più giocatori non trovati." };
   }
 

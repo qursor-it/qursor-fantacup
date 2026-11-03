@@ -28,8 +28,7 @@ export default function TorneoConclusoPage() {
           className="flex flex-col text-4xl items-center uppercase leading-tight gap-4"
           style={{ fontFamily: "var(--font-tallica)" }}
         >
-          <span>Danimarca&apos;s</span>
-          <span>Cup 26</span>
+          {siteConfig.titleLines.map((line) => <span key={line}>{line}</span>)}
         </div>
         <span
           className="rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"

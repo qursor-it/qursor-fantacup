@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { logout } from "@/app/actions/auth";
 import { openReviewPrompt } from "@/lib/review-prompt-trigger";
+import { siteConfig } from "@/lib/site";
 
 export default function ProfiloLoggedIn({ name, isAdmin, isGV }: { name: string; isAdmin: boolean; isGV?: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -77,7 +78,7 @@ export default function ProfiloLoggedIn({ name, isAdmin, isGV }: { name: string;
           {isGV ? "GreenVolley — il campionato" : "Dove il calcio incontra la fantasia"}
         </p>
         <p className="text-[10px] text-center" style={{ color: "rgba(0,0,0,0.65)" }}>
-          {`Copyright © ${new Date().getFullYear()} — Danimarca's Cup`}
+          {`Copyright © ${new Date().getFullYear()} — ${siteConfig.name}`}
         </p>
       </div>
     </div>
