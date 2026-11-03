@@ -444,6 +444,7 @@ model VolleySet {
   homePoints Int
   awayPoints Int
 
+  @@unique([matchId, setNumber])
   @@index([matchId])
 }
 
