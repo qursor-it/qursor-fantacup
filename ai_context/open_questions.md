@@ -26,7 +26,7 @@ Questo file non raccoglie piu le decisioni macro iniziali: ora elenca solo i pun
 
 Da definire:
 
-* regole custom per ordinare squadre a pari punti
+* regole custom per ordinare squadre a pari punti (oggi: stessa posizione a pari punti, ordine alfabetico; nei gironi del torneo: punti, differenza reti, gol fatti, nome)
 * eventuale ordine dei criteri di spareggio
 
 ### 2. Anti spam e anti abuso
@@ -37,6 +37,15 @@ Da definire:
 * limite concreto su votazioni ripetute
 * se introdurre captcha semplice in registrazione
 * come tradurre l'idea di "massimo 3 per device" in una regola tecnica realistica
+
+Stato attuale (in memoria, per singola istanza: si azzera al riavvio e non e condiviso tra istanze):
+
+* login: 10 tentativi / 15 min per email, 30 / 15 min per IP
+* registrazione: 5 / ora per IP
+* voto MVP, cambio password, cancellazione account: 5 / ora per utente
+* `/api/story` e `/api/track`: 30 / min per IP
+
+Da valutare se passare a uno store condiviso (Postgres/Redis) in caso di deploy multi-istanza.
 
 ### 3. Sessione persistente
 

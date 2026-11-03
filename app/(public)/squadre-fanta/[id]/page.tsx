@@ -20,6 +20,7 @@ export default async function SquadraFantasyPublicPage({
 }) {
   const [{ id }, { fase }] = await Promise.all([params, searchParams]);
   const teamId = Number(id);
+  if (!Number.isInteger(teamId) || teamId <= 0) notFound();
 
   const detail = await getPublicFantasyTeamDetail(teamId);
   if (!detail) notFound();

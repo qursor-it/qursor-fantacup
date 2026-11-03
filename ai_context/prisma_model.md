@@ -176,12 +176,12 @@ model MatchPlayer {
 
 model Vote {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  userId    Int?     // null = voto anonimizzato dopo la cancellazione dell'utente
   matchId   Int
   playerId  Int
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
@@ -250,7 +250,7 @@ model FantasyTeamPlayer {
 
 model AdminAuditLog {
   id          Int      @id @default(autoincrement())
-  adminUserId Int
+  adminUserId Int?
   action      String
   entityType  String
   entityId    String?
@@ -258,7 +258,7 @@ model AdminAuditLog {
   after       Json?
   createdAt   DateTime @default(now())
 
-  adminUser   User     @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminUser   User?    @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
 
   @@index([adminUserId])
   @@index([entityType, entityId])

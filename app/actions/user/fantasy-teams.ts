@@ -2,7 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
-import { PlayerRole } from "@prisma/client";
+import { PlayerRole, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { validateRoster } from "@/lib/domain/roster";
@@ -23,6 +23,18 @@ const Schema = z.object({
     .array(z.coerce.number().int().positive())
     .length(5, "Seleziona esattamente 5 giocatori"),
 });
+
+function isUniqueViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+}
+
+const ROSTER_ERROR_MESSAGES: Record<string, string> = {
+  WRONG_SIZE: "Seleziona esattamente 5 giocatori.",
+  WRONG_GK_COUNT: "Devi avere esattamente 1 portiere.",
+  WRONG_PLAYER_COUNT: "Devi avere esattamente 4 giocatori di movimento.",
+  DUPLICATE_TEAM: "I 5 giocatori devono appartenere a 5 squadre reali diverse.",
+  CAPTAIN_NOT_IN_ROSTER: "Il capitano deve essere uno dei 5 giocatori selezionati.",
+};
 
 async function updateFantasyPublicCache() {
   updateTag(PUBLIC_CACHE_TAGS.fantasy);
@@ -72,18 +84,12 @@ export async function createFantasyTeam(
   );
 
   if (rosterError) {
-    const messages: Record<string, string> = {
-      WRONG_SIZE: "Seleziona esattamente 5 giocatori.",
-      WRONG_GK_COUNT: "Devi avere esattamente 1 portiere.",
-      WRONG_PLAYER_COUNT: "Devi avere esattamente 4 giocatori di movimento.",
-      DUPLICATE_TEAM: "I 5 giocatori devono appartenere a 5 squadre reali diverse.",
-      CAPTAIN_NOT_IN_ROSTER: "Il capitano deve essere uno dei 5 giocatori selezionati.",
-    };
-    return { success: false, message: messages[rosterError] ?? rosterError };
+    return { success: false, message: ROSTER_ERROR_MESSAGES[rosterError] ?? rosterError };
   }
 
-  const [newTeam] = await db.$transaction([
-    db.fantasyTeam.create({
+  let newTeam: { id: number };
+  try {
+    newTeam = await db.fantasyTeam.create({
       data: {
         name,
         userId,
@@ -92,8 +98,15 @@ export async function createFantasyTeam(
           create: playerIds.map((playerId) => ({ playerId })),
         },
       },
-    }),
-  ]);
+      select: { id: true },
+    });
+  } catch (e) {
+    // Doppio submit concorrente: il vincolo unique su userId protegge il DB.
+    if (isUniqueViolation(e)) {
+      return { success: false, message: "Hai già una squadra fantasy." };
+    }
+    throw e;
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/squadra");
@@ -126,7 +139,7 @@ export async function updateMyFantasyRoster(
 
   const team = await db.fantasyTeam.findUnique({
     where: { userId },
-    include: { players: { select: { playerId: true } } },
+    select: { id: true },
   });
   if (!team) return { success: false, message: "Non hai ancora una squadra." };
 
@@ -157,51 +170,67 @@ export async function updateMyFantasyRoster(
     captainPlayerId
   );
   if (rosterError) {
-    const messages: Record<string, string> = {
-      WRONG_SIZE: "Seleziona esattamente 5 giocatori.",
-      WRONG_GK_COUNT: "Devi avere esattamente 1 portiere.",
-      WRONG_PLAYER_COUNT: "Devi avere esattamente 4 giocatori di movimento.",
-      DUPLICATE_TEAM: "I 5 giocatori devono appartenere a 5 squadre reali diverse.",
-      CAPTAIN_NOT_IN_ROSTER: "Il capitano deve essere uno dei 5 giocatori selezionati.",
-    };
-    return { success: false, message: messages[rosterError] ?? rosterError };
+    return { success: false, message: ROSTER_ERROR_MESSAGES[rosterError] ?? rosterError };
   }
 
-  // Baseline = rosa al primo salvataggio in questa finestra (rosa di partenza).
-  const usage = await db.rosterEditUsage.findUnique({
-    where: { windowId_fantasyTeamId: { windowId: window.id, fantasyTeamId: team.id } },
-  });
-  const baseline = usage
-    ? (usage.baselinePlayerIds as number[])
-    : team.players.map((p) => p.playerId);
+  // Transazione interattiva con lock sulla riga FantasyTeam: due salvataggi
+  // concorrenti vengono serializzati e il secondo rilegge rosa/uso/baseline
+  // aggiornati prima di validare il budget di cambi.
+  const outcome = await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "FantasyTeam" WHERE id = ${team.id} FOR UPDATE`;
 
-  const changesUsed = countSubstitutions(baseline, playerIds);
-  if (changesUsed > window.maxChanges) {
-    return {
-      success: false,
-      message: `Puoi sostituire al massimo ${window.maxChanges} ${
-        window.maxChanges === 1 ? "giocatore" : "giocatori"
-      } rispetto alla rosa di partenza.`,
-    };
-  }
+    const now = new Date();
+    const activeWindow = await tx.rosterEditWindow.findFirst({
+      where: { opensAt: { lte: now }, closesAt: { gt: now } },
+      orderBy: { opensAt: "desc" },
+    });
+    if (!activeWindow) {
+      return { success: false as const, message: "Le modifiche non sono aperte." };
+    }
 
-  await db.$transaction([
-    db.rosterEditUsage.upsert({
-      where: { windowId_fantasyTeamId: { windowId: window.id, fantasyTeamId: team.id } },
+    const currentRoster = await tx.fantasyTeamPlayer.findMany({
+      where: { fantasyTeamId: team.id },
+      select: { playerId: true },
+    });
+
+    // Baseline = rosa al primo salvataggio in questa finestra (rosa di partenza).
+    const usage = await tx.rosterEditUsage.findUnique({
+      where: { windowId_fantasyTeamId: { windowId: activeWindow.id, fantasyTeamId: team.id } },
+    });
+    const baseline = usage
+      ? (usage.baselinePlayerIds as number[])
+      : currentRoster.map((p) => p.playerId);
+
+    const changesUsed = countSubstitutions(baseline, playerIds);
+    if (changesUsed > activeWindow.maxChanges) {
+      return {
+        success: false as const,
+        message: `Puoi sostituire al massimo ${activeWindow.maxChanges} ${
+          activeWindow.maxChanges === 1 ? "giocatore" : "giocatori"
+        } rispetto alla rosa di partenza.`,
+      };
+    }
+
+    await tx.rosterEditUsage.upsert({
+      where: { windowId_fantasyTeamId: { windowId: activeWindow.id, fantasyTeamId: team.id } },
       create: {
-        windowId: window.id,
+        windowId: activeWindow.id,
         fantasyTeamId: team.id,
         baselinePlayerIds: baseline,
         changesUsed,
       },
       update: { changesUsed },
-    }),
-    db.fantasyTeamPlayer.deleteMany({ where: { fantasyTeamId: team.id } }),
-    db.fantasyTeamPlayer.createMany({
+    });
+    await tx.fantasyTeamPlayer.deleteMany({ where: { fantasyTeamId: team.id } });
+    await tx.fantasyTeamPlayer.createMany({
       data: playerIds.map((playerId) => ({ fantasyTeamId: team.id, playerId })),
-    }),
-    db.fantasyTeam.update({ where: { id: team.id }, data: { captainPlayerId } }),
-  ]);
+    });
+    await tx.fantasyTeam.update({ where: { id: team.id }, data: { captainPlayerId } });
+
+    return { success: true as const };
+  });
+
+  if (!outcome.success) return outcome;
 
   revalidatePath("/squadra");
   revalidatePath("/dashboard");

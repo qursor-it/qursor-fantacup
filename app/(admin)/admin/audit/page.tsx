@@ -14,7 +14,7 @@ export default async function AuditPage() {
   const rows = logs.map((log) => ({
     id: log.id,
     createdAt: log.createdAt.toLocaleString("it-IT"),
-    adminEmail: log.adminUser.email,
+    adminEmail: log.adminUser?.email ?? "(account eliminato)",
     action: log.action,
     entityType: log.entityType,
     entityId: log.entityId ?? null,

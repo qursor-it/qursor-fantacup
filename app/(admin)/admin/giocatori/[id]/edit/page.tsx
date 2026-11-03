@@ -190,7 +190,7 @@ export default async function EditGiocatorePage({
                       {home} — {away}
                     </span>
                     <span className="text-xs flex-shrink-0" style={{ color: "var(--text-muted)" }}>
-                      {new Date(m.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
+                      {new Date(m.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short", timeZone: "UTC" })}
                     </span>
                   </Link>
                 );
@@ -245,7 +245,7 @@ export default async function EditGiocatorePage({
                       </span>
                     )}
                     <span className="text-[11px] flex-shrink-0 hidden sm:block" style={{ color: "var(--text-muted)" }}>
-                      {new Date(m.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
+                      {new Date(m.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short", timeZone: "UTC" })}
                     </span>
                   </Link>
                 );

@@ -6,7 +6,7 @@ type RankRow = {
   rank: number;
   fantasyTeamId: number;
   fantasyTeamName: string;
-  userEmail: string;
+  userId: number;
   userName: string | null;
   totalPoints: number;
 };
@@ -92,7 +92,7 @@ export default function ClassificaTable({ rows }: { rows: RankRow[] }) {
                     </div>
                   </Link>
                   <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
-                    {row.userName ?? row.userEmail}
+                    {row.userName ?? "Utente"}
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -127,7 +127,7 @@ export default function ClassificaTable({ rows }: { rows: RankRow[] }) {
                   </div>
                 </Link>
                 <div className="text-[11px] mt-0.5 text-black">
-                  {row.userName ?? row.userEmail}
+                  {row.userName ?? "Utente"}
                 </div>
               </div>
               <div className="font-display font-black text-lg flex-shrink-0" style={{ color: "var(--text-secondary)" }}>

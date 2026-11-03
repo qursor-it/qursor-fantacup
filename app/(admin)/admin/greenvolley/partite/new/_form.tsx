@@ -5,6 +5,7 @@ import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { createVolleyMatch } from "@/app/actions/admin/volley";
+import { calendarToVolleyDateInput } from "@/lib/volley/format";
 
 type SelectItem = { id: number; name: string };
 
@@ -100,7 +101,7 @@ export default function NewVolleyMatchForm({
         <input
           type="hidden"
           name="date"
-          value={date ? date.toISOString() : ""}
+          value={calendarToVolleyDateInput(date)}
         />
       </div>
 

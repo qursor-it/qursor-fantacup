@@ -30,6 +30,9 @@ export class SuspendedUserError extends CredentialsSignin {
 
 // --- Auth config ---
 
+// Hash bcrypt fittizio (costo 12, come le password reali) usato quando l'email non esiste.
+const DUMMY_PASSWORD_HASH = "$2b$12$Q2I5Wsf2kDQdPI/2LVQDj..ZRsOxzuk9zFWaSAJJnaNdtbH3hfyr.";
+
 const SESSION_MAX_AGE = parseInt(
   process.env.AUTH_SESSION_MAX_AGE ?? "2592000",
   10
@@ -56,7 +59,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!email || !password) return null;
 
         const user = await db.user.findUnique({ where: { email } });
-        if (!user) return null;
+        if (!user) {
+          // Stesso costo di un login reale: evita di distinguere le email registrate dai tempi di risposta.
+          await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+          return null;
+        }
 
         const passwordMatch = await bcrypt.compare(password, user.passwordHash);
         if (!passwordMatch) return null;
@@ -91,7 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const dbUser = await db.user.findUnique({
           where: { id },
-          select: { isSuspended: true, passwordChangedAt: true },
+          select: { isSuspended: true, passwordChangedAt: true, role: true },
         });
 
         if (!dbUser || dbUser.isSuspended) return null;
@@ -101,6 +108,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (iat && dbUser.passwordChangedAt && dbUser.passwordChangedAt > new Date(iat * 1000)) {
           return null;
         }
+
+        // Il ruolo viene riletto a ogni richiesta: un admin declassato perde subito l'accesso.
+        (token as { role: UserRole }).role = dbUser.role;
       }
       return token;
     },

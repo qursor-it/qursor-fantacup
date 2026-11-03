@@ -2,7 +2,7 @@ import "server-only";
 
 import { MatchStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { resolveMvp } from "@/lib/domain/mvp";
+import { mvpPointsFromBonusType, resolveMvp } from "@/lib/domain/mvp";
 import { resolveTeamFlag } from "@/lib/flags";
 
 export type MvpPhase = {
@@ -276,10 +276,9 @@ export async function getMvpMatchDetail(matchId: number): Promise<MvpMatchDetail
   }
 
   // Vote counts per player
+  // Solo voti per giocatori presenti in partita (coerente con resolveMvp)
   const voteCounts = new Map<number, number>();
-  for (const v of match.votes) {
-    voteCounts.set(v.playerId, (voteCounts.get(v.playerId) ?? 0) + 1);
-  }
+  for (const v of resolution.voteCounts) voteCounts.set(v.playerId, v.votes);
 
   // Goals per player
   const goalsByPlayer = new Map<number, { goals: number; ownGoals: number }>();
@@ -305,7 +304,7 @@ export async function getMvpMatchDetail(matchId: number): Promise<MvpMatchDetail
     }
   }
 
-  const mvpBonusValue = mvpBonusType ? Number(mvpBonusType.points) : 3;
+  const mvpBonusValue = mvpPointsFromBonusType(mvpBonusType);
 
   const playerVotes: MvpPlayerVote[] = match.players
     .map(({ playerId, player }) => {

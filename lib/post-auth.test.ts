@@ -14,6 +14,9 @@ describe("sanitizeNextPath", () => {
   it("rejects external paths", () => {
     expect(sanitizeNextPath("https://example.com")).toBe("");
     expect(sanitizeNextPath("//example.com")).toBe("");
+    expect(sanitizeNextPath("/\\example.com")).toBe("");
+    expect(sanitizeNextPath("/\\/example.com")).toBe("");
+    expect(sanitizeNextPath("/\texample.com")).toBe("");
   });
 
   it("rejects non-string values", () => {

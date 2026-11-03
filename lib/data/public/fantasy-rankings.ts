@@ -92,7 +92,7 @@ export const getPublicFantasyTeamDetail = cachePublicData(
         id: true,
         name: true,
         captainPlayerId: true,
-        user: { select: { name: true, email: true } },
+        user: { select: { name: true } },
         players: {
           select: {
             player: {
@@ -122,7 +122,7 @@ export const getPublicFantasyTeamDetail = cachePublicData(
         id: team.id,
         name: team.name,
         captainPlayerId: team.captainPlayerId,
-        ownerLabel: team.user.name ?? team.user.email,
+        ownerLabel: team.user.name ?? "Utente",
         players: team.players,
       },
       history,

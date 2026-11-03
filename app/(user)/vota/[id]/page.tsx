@@ -10,7 +10,9 @@ import VoteForm from "./_vote-form";
 
 export default async function VotaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (!/^[1-9]\d*$/.test(id)) notFound();
   const matchId = Number(id);
+  if (!Number.isSafeInteger(matchId) || matchId > 2_147_483_647) notFound();
   const user = await requireAuth();
   const userId = Number(user.id);
 

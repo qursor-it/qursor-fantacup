@@ -1,8 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { AuthError } from "next-auth";
-import { UserRole } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { signIn, signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -13,6 +14,15 @@ import {
 } from "@/lib/post-auth";
 import { RegisterSchema, LoginSchema } from "@/lib/auth-schemas";
 import { getRegistrationOpen } from "@/lib/app-settings";
+import {
+  checkRateLimit,
+  getClientIp,
+  loginEmailLimiter,
+  loginIpLimiter,
+  registerIpLimiter,
+} from "@/lib/rate-limit";
+
+const TOO_MANY_ATTEMPTS = "Troppi tentativi. Riprova tra qualche minuto.";
 
 export type AuthActionResult = {
   errors?: Record<string, string[]>;
@@ -29,6 +39,11 @@ export async function register(
   if (!registrationOpen) {
     return { message: "Le registrazioni sono attualmente chiuse." };
   }
+
+  // Rate limit per IP (in memoria, per istanza: vedi lib/rate-limit.ts)
+  const ip = getClientIp(await headers());
+  const ipLimit = await checkRateLimit(registerIpLimiter, `register:ip:${ip}`);
+  if (ipLimit.limited) return { message: TOO_MANY_ATTEMPTS };
 
   const parsed = RegisterSchema.safeParse({
     name: formData.get("name") ?? "",
@@ -60,10 +75,19 @@ export async function register(
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await db.user.create({
-    data: { email, passwordHash, name },
-    select: { role: true },
-  });
+  let user: { role: UserRole };
+  try {
+    user = await db.user.create({
+      data: { email, passwordHash, name },
+      select: { role: true },
+    });
+  } catch (e) {
+    // Registrazione concorrente con la stessa email: vincolo unique sul DB.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return { errors: { email: ["Questa email è già registrata."] } };
+    }
+    throw e;
+  }
 
   try {
     await signIn("credentials", {
@@ -100,6 +124,16 @@ export async function login(
 
   if (!parsed.success) {
     return { message: "Credenziali non valide." };
+  }
+
+  // Rate limit per email e per IP (in memoria, per istanza: vedi lib/rate-limit.ts)
+  const ip = getClientIp(await headers());
+  const [emailLimit, ipLimit] = await Promise.all([
+    checkRateLimit(loginEmailLimiter, `login:email:${parsed.data.email.toLowerCase()}`),
+    checkRateLimit(loginIpLimiter, `login:ip:${ip}`),
+  ]);
+  if (emailLimit.limited || ipLimit.limited) {
+    return { message: TOO_MANY_ATTEMPTS };
   }
 
   const existingUser = await db.user.findUnique({

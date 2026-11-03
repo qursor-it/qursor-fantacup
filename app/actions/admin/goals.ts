@@ -56,6 +56,24 @@ export async function addGoal(_prev: ActionResult | undefined, formData: FormDat
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
 
+  const match = await db.match.findUnique({
+    where: { id: parsed.data.matchId },
+    select: { homeTeamId: true, awayTeamId: true },
+  });
+  if (!match) return { message: "Partita non trovata." };
+  if (match.homeTeamId === null || match.awayTeamId === null) {
+    return { message: "Assegna entrambe le squadre prima di inserire i goal." };
+  }
+
+  const scorer = await db.player.findUnique({
+    where: { id: parsed.data.scorerId },
+    select: { footballTeamId: true },
+  });
+  if (!scorer) return { message: "Giocatore non trovato." };
+  if (scorer.footballTeamId !== match.homeTeamId && scorer.footballTeamId !== match.awayTeamId) {
+    return { message: "Il marcatore non appartiene a nessuna delle due squadre della partita." };
+  }
+
   const goal = await db.matchGoal.create({
     data: {
       matchId:   parsed.data.matchId,
@@ -73,11 +91,12 @@ export async function addGoal(_prev: ActionResult | undefined, formData: FormDat
 
 export async function deleteGoal(formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const id     = Number(formData.get("id"));
-  const matchId = Number(formData.get("matchId"));
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return { message: "Goal non valido." };
 
   const before = await db.matchGoal.findUnique({ where: { id } });
   if (!before) return { message: "Goal non trovato." };
+  const matchId = before.matchId;
 
   await db.matchGoal.delete({ where: { id } });
   await logAdminAction(Number(admin.id), "DELETE_GOAL", "MatchGoal", id, before, null);

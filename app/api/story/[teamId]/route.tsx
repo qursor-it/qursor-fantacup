@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { computeTeamHistory, getTeamPhaseBreakdown } from "@/lib/scoring";
 import { resolveTeamFlag } from "@/lib/flags";
+import { checkRateLimit, getClientIp, storyImageLimiter } from "@/lib/rate-limit";
 import { readFile } from "fs/promises";
 import path from "path";
 
@@ -57,20 +58,34 @@ function displayTeamCode(team: {
   return fitStoryText((team.countryCode ?? team.shortName ?? team.name).toUpperCase(), 8);
 }
 
+const CACHE_CONTROL = "public, max-age=60, s-maxage=300";
+
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const { teamId: teamIdStr } = await params;
-    const teamId = parseInt(teamIdStr, 10);
-    if (isNaN(teamId)) return new Response("Invalid teamId", { status: 400 });
+    if (!/^[1-9]\d{0,9}$/.test(teamIdStr)) return new Response("Team not found", { status: 404 });
+    const teamId = Number(teamIdStr);
+    if (!Number.isSafeInteger(teamId) || teamId > 2_147_483_647) {
+      return new Response("Team not found", { status: 404 });
+    }
+
+    // Rate limit per IP (in memoria, per istanza: vedi lib/rate-limit.ts)
+    const limit = await checkRateLimit(storyImageLimiter, `story:ip:${getClientIp(req.headers)}`);
+    if (limit.limited) {
+      return new Response("Too many requests", {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfter ?? 60) },
+      });
+    }
 
     const [team, logoBuffer, appStoreBuffer, playStoreBuffer] = await Promise.all([
       db.fantasyTeam.findUnique({
         where: { id: teamId },
         include: {
-          user: { select: { name: true, email: true } },
+          user: { select: { name: true } },
           players: {
             include: {
               player: {
@@ -138,7 +153,8 @@ export async function GET(
       )
     );
 
-    const ownerName = fitStoryText(team.user.name ?? team.user.email.split("@")[0], 28);
+    // Mai esporre l'email (nemmeno la parte locale) in un'immagine pubblica.
+    const ownerName = fitStoryText(team.user.name?.trim() || "Utente", 28);
     const displayTeamName = fitStoryText(team.name.toUpperCase(), 20);
     const teamNameFontSize =
       displayTeamName.length > 18 ? 52 : displayTeamName.length > 14 ? 58 : 64;
@@ -482,11 +498,12 @@ export async function GET(
       {
         width: W,
         height: H,
+        headers: { "Cache-Control": CACHE_CONTROL },
       }
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[story route]", msg, err);
-    return new Response(`Story generation failed: ${msg}`, { status: 500 });
+    return new Response("Story generation failed", { status: 500 });
   }
 }

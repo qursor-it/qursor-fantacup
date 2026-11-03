@@ -26,7 +26,8 @@ export async function closeScoringPhaseAction(_prev: ActionResult | undefined, f
   const parsed = NameSchema.safeParse({ name: formData.get("name") });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
 
-  await closeScoringPhase(parsed.data.name, Number(admin.id));
+  const result = await closeScoringPhase(parsed.data.name, Number(admin.id));
+  if (!result.ok) return { errors: { name: [result.error] } };
   await revalidateScoring();
   return { message: "Fase chiusa e storico salvato." };
 }

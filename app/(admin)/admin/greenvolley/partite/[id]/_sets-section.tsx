@@ -6,6 +6,7 @@ import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { useRouter } from "next/navigation";
+import { useAppToast } from "@/components/toast-provider";
 import {
   addVolleySet,
   updateVolleySet,
@@ -32,6 +33,7 @@ type MatchInfo = {
 
 export default function SetSection({ match }: { match: MatchInfo }) {
   const router = useRouter();
+  const { error: showError } = useAppToast();
   const [homePoints, setHomePoints] = useState<number | null>(null);
   const [awayPoints, setAwayPoints] = useState<number | null>(null);
   const [editingSetId, setEditingSetId] = useState<number | null>(null);
@@ -440,7 +442,8 @@ export default function SetSection({ match }: { match: MatchInfo }) {
             className="w-full sm:w-auto"
             onClick={() =>
               startTransition(async () => {
-                await scheduleVolleyMatch(match.id);
+                const result = await scheduleVolleyMatch(match.id);
+                if (result?.error) showError(result.error);
                 router.refresh();
               })
             }
@@ -456,7 +459,8 @@ export default function SetSection({ match }: { match: MatchInfo }) {
             className="w-full sm:w-auto"
             onClick={() =>
               startTransition(async () => {
-                await concludeVolleyMatch(match.id);
+                const result = await concludeVolleyMatch(match.id);
+                if (result?.error) showError(result.error);
                 router.refresh();
               })
             }
@@ -472,7 +476,8 @@ export default function SetSection({ match }: { match: MatchInfo }) {
             className="w-full sm:w-auto"
             onClick={() =>
               startTransition(async () => {
-                await reopenVolleyMatch(match.id);
+                const result = await reopenVolleyMatch(match.id);
+                if (result?.error) showError(result.error);
                 router.refresh();
               })
             }

@@ -9,6 +9,13 @@ import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "./football-teams";
 import { revalidateDcupPublicPaths } from "./revalidate-public";
 
+/** Dominio: 4 gironi da 4 squadre ciascuno (ai_context/domain_rules.md). */
+const MAX_TEAMS_PER_GROUP = 4;
+
+function isPositiveId(n: number): boolean {
+  return Number.isInteger(n) && n > 0;
+}
+
 const GroupSchema = z.object({
   name: z.string().min(1, "Nome obbligatorio").max(50),
   slug: z.string().min(1, "Slug obbligatorio").max(4).toUpperCase(),
@@ -38,6 +45,7 @@ export async function createGroup(_prev: ActionResult | undefined, formData: For
 export async function updateGroup(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const id = Number(formData.get("id"));
+  if (!isPositiveId(id)) return { message: "Girone non valido." };
   const parsed = GroupSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
@@ -49,6 +57,7 @@ export async function updateGroup(_prev: ActionResult | undefined, formData: For
   if (conflict) return { errors: { slug: ["Slug già in uso da un altro girone."] } };
 
   const before = await db.group.findUnique({ where: { id } });
+  if (!before) return { message: "Girone non trovato." };
   const group = await db.group.update({ where: { id }, data: parsed.data });
   await logAdminAction(Number(admin.id), "UPDATE", "Group", id, before, group);
 
@@ -61,11 +70,13 @@ export async function updateGroup(_prev: ActionResult | undefined, formData: For
 export async function deleteGroup(formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const id = Number(formData.get("id"));
+  if (!isPositiveId(id)) return { message: "Girone non valido." };
 
   const matchCount = await db.match.count({ where: { groupId: id } });
   if (matchCount > 0) return { message: "Impossibile eliminare: il girone ha partite associate." };
 
   const before = await db.group.findUnique({ where: { id } });
+  if (!before) return { message: "Girone non trovato." };
   await db.group.delete({ where: { id } });
   await logAdminAction(Number(admin.id), "DELETE", "Group", id, before, null);
 
@@ -78,7 +89,19 @@ export async function addTeamToGroup(_prev: ActionResult | undefined, formData: 
   const admin = await requireAdmin();
   const groupId = Number(formData.get("groupId"));
   const footballTeamId = Number(formData.get("footballTeamId"));
-  if (!groupId || !footballTeamId) return { message: "Dati mancanti." };
+  if (!isPositiveId(groupId) || !isPositiveId(footballTeamId)) return { message: "Dati mancanti." };
+
+  const group = await db.group.findUnique({
+    where: { id: groupId },
+    select: { id: true, _count: { select: { teams: true } } },
+  });
+  if (!group) return { message: "Girone non trovato." };
+  if (group._count.teams >= MAX_TEAMS_PER_GROUP) {
+    return { message: `Il girone ha già ${MAX_TEAMS_PER_GROUP} squadre.` };
+  }
+
+  const team = await db.footballTeam.findUnique({ where: { id: footballTeamId }, select: { id: true } });
+  if (!team) return { message: "Squadra non trovata." };
 
   // Una squadra può stare in un solo girone
   const alreadyInGroup = await db.groupTeam.findFirst({ where: { footballTeamId } });
@@ -97,6 +120,12 @@ export async function removeTeamFromGroup(formData: FormData): Promise<ActionRes
   const admin = await requireAdmin();
   const groupId = Number(formData.get("groupId"));
   const footballTeamId = Number(formData.get("footballTeamId"));
+  if (!isPositiveId(groupId) || !isPositiveId(footballTeamId)) return { message: "Dati mancanti." };
+
+  const existing = await db.groupTeam.findUnique({
+    where: { groupId_footballTeamId: { groupId, footballTeamId } },
+  });
+  if (!existing) return { message: "La squadra non fa parte di questo girone." };
 
   await db.groupTeam.delete({ where: { groupId_footballTeamId: { groupId, footballTeamId } } });
   await logAdminAction(Number(admin.id), "REMOVE_TEAM_FROM_GROUP", "GroupTeam", groupId, { groupId, footballTeamId }, null);
@@ -112,12 +141,18 @@ export async function setTeamQualified(formData: FormData): Promise<ActionResult
   const groupId = Number(formData.get("groupId"));
   const footballTeamId = Number(formData.get("footballTeamId"));
   const qualified = formData.get("qualified") === "true";
+  if (!isPositiveId(groupId) || !isPositiveId(footballTeamId)) return { message: "Dati mancanti." };
+
+  const existing = await db.groupTeam.findUnique({
+    where: { groupId_footballTeamId: { groupId, footballTeamId } },
+  });
+  if (!existing) return { message: "La squadra non fa parte di questo girone." };
 
   await db.groupTeam.update({
     where: { groupId_footballTeamId: { groupId, footballTeamId } },
     data: { qualified },
   });
-  await logAdminAction(Number(admin.id), "SET_QUALIFIED", "GroupTeam", groupId, { footballTeamId, qualified: !qualified }, { footballTeamId, qualified });
+  await logAdminAction(Number(admin.id), "SET_QUALIFIED", "GroupTeam", groupId, { footballTeamId, qualified: existing.qualified }, { footballTeamId, qualified });
 
   revalidatePath(`/admin/gironi/${groupId}`);
   revalidatePath("/admin/gironi");

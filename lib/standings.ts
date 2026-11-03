@@ -1,6 +1,27 @@
 import { db } from "./db";
 import { measureServerTiming } from "./perf";
 
+// ─── Tiebreak condiviso ──────────────────────────────────────────────────────
+
+type ComparableStanding = { points: number; goalDiff: number; goalsFor: number };
+
+/**
+ * Ordinamento unico per tutte le classifiche: punti, differenza reti, gol fatti,
+ * nome (locale it).
+ */
+export function compareStandings<T extends ComparableStanding>(
+  a: T,
+  b: T,
+  getName: (row: T) => string
+): number {
+  return (
+    b.points - a.points ||
+    b.goalDiff - a.goalDiff ||
+    b.goalsFor - a.goalsFor ||
+    getName(a).localeCompare(getName(b), "it")
+  );
+}
+
 // ─── Sync helper (dati già fetchati dalla pagina) ────────────────────────────
 
 export type GroupStandingRow = {
@@ -72,9 +93,7 @@ export function buildGroupStandings(teams: TeamEntry[], matches: MatchEntry[]): 
         else away.lost++;
       }
     }
-    return [...map.values()].sort(
-      (a, b) => b.points - a.points || b.goalDiff - a.goalDiff || a.name.localeCompare(b.name, "it")
-    );
+    return [...map.values()].sort((a, b) => compareStandings(a, b, (row) => row.name));
   });
 }
 
@@ -159,12 +178,7 @@ export async function computeStandings(): Promise<StandingEntry[]> {
     const entries = [...map.values()];
     for (const e of entries) e.goalDiff = e.goalsFor - e.goalsAgainst;
 
-    entries.sort((a, b) =>
-      b.points - a.points ||
-      b.goalDiff - a.goalDiff ||
-      b.goalsFor - a.goalsFor ||
-      a.teamName.localeCompare(b.teamName, "it")
-    );
+    entries.sort((a, b) => compareStandings(a, b, (row) => row.teamName));
 
     return entries.map((e, i) => ({ ...e, rank: i + 1 }));
   });
@@ -210,39 +224,37 @@ export async function computeGroupStandings(groupId: number): Promise<StandingEn
     return map.get(team.id)!;
   };
 
-  // Seed solo le squadre assegnate al girone
+  // Seed solo le squadre assegnate al girone: le squadre non membre vengono ignorate
+  // (come in buildGroupStandings), anche se compaiono in una partita del girone.
   for (const gt of groupTeams) ensure(gt.footballTeam);
 
   for (const m of matches) {
     if (!m.homeTeam || !m.awayTeam) continue; // skip TBD knockout matches
     const hs = m.homeScore!;
     const as_ = m.awayScore!;
-    const home = ensure(m.homeTeam);
-    const away = ensure(m.awayTeam);
+    const home = map.get(m.homeTeam.id);
+    const away = map.get(m.awayTeam.id);
 
-    home.played++; away.played++;
-    home.goalsFor += hs; home.goalsAgainst += as_;
-    away.goalsFor += as_; away.goalsAgainst += hs;
-
-    if (hs > as_) {
-      home.won++; home.points += 3; away.lost++;
-    } else if (hs < as_) {
-      away.won++; away.points += 3; home.lost++;
-    } else {
-      home.drawn++; home.points += 1;
-      away.drawn++; away.points += 1;
+    if (home) {
+      home.played++;
+      home.goalsFor += hs; home.goalsAgainst += as_;
+      if (hs > as_) { home.won++; home.points += 3; }
+      else if (hs === as_) { home.drawn++; home.points += 1; }
+      else home.lost++;
+    }
+    if (away) {
+      away.played++;
+      away.goalsFor += as_; away.goalsAgainst += hs;
+      if (as_ > hs) { away.won++; away.points += 3; }
+      else if (hs === as_) { away.drawn++; away.points += 1; }
+      else away.lost++;
     }
   }
 
   const entries = [...map.values()];
   for (const e of entries) e.goalDiff = e.goalsFor - e.goalsAgainst;
 
-  entries.sort((a, b) =>
-    b.points - a.points ||
-    b.goalDiff - a.goalDiff ||
-    b.goalsFor - a.goalsFor ||
-    a.teamName.localeCompare(b.teamName, "it")
-  );
+  entries.sort((a, b) => compareStandings(a, b, (row) => row.teamName));
 
   return entries.map((e, i) => ({ ...e, rank: i + 1 }));
 }

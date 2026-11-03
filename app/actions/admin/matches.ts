@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
 import { parseMatchDateTimeInput } from "@/lib/domain/match";
+import { getLastClosedAt } from "@/lib/scoring";
 import type { ActionResult } from "./football-teams";
 import { revalidateDcupPublicPaths } from "./revalidate-public";
 
@@ -48,6 +49,49 @@ function startsAtFromForm(date: string | undefined, time: string | undefined) {
   return startsAt;
 }
 
+const onlyOnePhase = (d: { groupId?: number | null; knockoutRoundId?: number | null }) =>
+  !(d.groupId && d.knockoutRoundId);
+const ONLY_ONE_PHASE_MSG = "Una partita può appartenere a un girone oppure a un turno a eliminazione diretta, non a entrambi.";
+
+/** Transizioni di stato ammesse dai pulsanti di stato. */
+const ALLOWED_TRANSITIONS: Record<MatchStatus, MatchStatus[]> = {
+  DRAFT: [MatchStatus.SCHEDULED],
+  SCHEDULED: [MatchStatus.DRAFT, MatchStatus.LIVE, MatchStatus.CONCLUDED],
+  LIVE: [MatchStatus.SCHEDULED, MatchStatus.CONCLUDED],
+  CONCLUDED: [MatchStatus.SCHEDULED],
+};
+
+function isValidId(id: number) {
+  return Number.isInteger(id) && id > 0;
+}
+
+/** Requisiti minimi per concludere una partita. */
+function cannotConcludeReason(m: {
+  homeTeamId: number | null;
+  awayTeamId: number | null;
+  homeScore: number | null;
+  awayScore: number | null;
+}): string | null {
+  if (!m.homeTeamId || !m.awayTeamId) return "Assegna entrambe le squadre prima di concludere la partita.";
+  if (m.homeScore === null || m.awayScore === null) {
+    return "Inserisci il risultato (anche 0-0) prima di concludere la partita.";
+  }
+  return null;
+}
+
+/**
+ * Una partita già congelata in una fase di punteggio chiusa non può tornare
+ * indietro: riconcludendola verrebbe contata anche nella fase in corso.
+ */
+async function frozenPhaseReason(concludedAt: Date | null): Promise<string | null> {
+  if (!concludedAt) return null;
+  const lastClosedAt = await getLastClosedAt();
+  if (lastClosedAt && concludedAt < lastClosedAt) {
+    return "Questa partita fa parte di una fase di punteggio già chiusa: non può essere riaperta. Correggi direttamente gol e bonus (lo storico congelato resta invariato).";
+  }
+  return null;
+}
+
 export async function createMatch(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const parsed = CreateSchema.safeParse({
@@ -66,6 +110,10 @@ export async function createMatch(_prev: ActionResult | undefined, formData: For
 
   if ((parsed.data.date && !parsed.data.time) || (!parsed.data.date && parsed.data.time)) {
     return { errors: { date: ["Inserisci sia data sia ora."] } };
+  }
+  if (!onlyOnePhase(parsed.data)) return { message: ONLY_ONE_PHASE_MSG };
+  if (parsed.data.status === MatchStatus.CONCLUDED || parsed.data.status === MatchStatus.LIVE) {
+    return { message: "Una nuova partita può essere creata solo come bozza o programmata." };
   }
 
   if (parsed.data.knockoutRoundId) {
@@ -131,8 +179,48 @@ export async function updateMatch(_prev: ActionResult | undefined, formData: For
     return { errors: { awayTeamId: ["Le due squadre devono essere diverse."] } };
   }
 
-  const before = await db.match.findUnique({ where: { id } });
+  if (!isValidId(id)) return { message: "Partita non valida." };
+  if (!onlyOnePhase(parsed.data)) return { message: ONLY_ONE_PHASE_MSG };
+
+  const before = await db.match.findUnique({
+    where: { id },
+    include: { _count: { select: { goals: true, votes: true, bonuses: true } } },
+  });
   if (!before) return { message: "Partita non trovata." };
+
+  const teamsChanged =
+    before.homeTeamId !== parsed.data.homeTeamId || before.awayTeamId !== parsed.data.awayTeamId;
+  if (teamsChanged && (before._count.goals > 0 || before._count.votes > 0 || before._count.bonuses > 0)) {
+    return { message: "Non puoi cambiare le squadre: la partita ha già gol, voti o bonus registrati. Eliminali prima." };
+  }
+
+  const nextHomeScore = parsed.data.homeScore ?? null;
+  const nextAwayScore = parsed.data.awayScore ?? null;
+  if (
+    before._count.goals > 0 &&
+    (nextHomeScore !== before.homeScore || nextAwayScore !== before.awayScore)
+  ) {
+    return { message: "Il risultato è calcolato dai marcatori registrati: modifica i gol invece del punteggio." };
+  }
+
+  if (parsed.data.knockoutRoundId && parsed.data.knockoutRoundId !== before.knockoutRoundId) {
+    return { message: "Le partite a eliminazione diretta si gestiscono dal tabellone: non puoi spostare qui una partita in un turno." };
+  }
+
+  const nextStatus = parsed.data.status ?? before.status;
+  if (nextStatus === MatchStatus.CONCLUDED) {
+    const reason = cannotConcludeReason({
+      homeTeamId: parsed.data.homeTeamId,
+      awayTeamId: parsed.data.awayTeamId,
+      homeScore: nextHomeScore,
+      awayScore: nextAwayScore,
+    });
+    if (reason) return { message: reason };
+  }
+  if (before.status === MatchStatus.CONCLUDED && nextStatus !== MatchStatus.CONCLUDED) {
+    const reason = await frozenPhaseReason(before.concludedAt);
+    if (reason) return { message: reason };
+  }
 
   const updateData: Parameters<typeof db.match.update>[0]["data"] = {
     homeTeamId: parsed.data.homeTeamId,
@@ -156,7 +244,24 @@ export async function updateMatch(_prev: ActionResult | undefined, formData: For
     }
   }
 
-  const match = await db.match.update({ where: { id }, data: updateData });
+  const match = await db.$transaction(async (tx) => {
+    const updated = await tx.match.update({ where: { id }, data: updateData });
+    if (teamsChanged) {
+      // Riallinea i giocatori presenti alle nuove squadre (nessun gol/voto/bonus esistente, verificato sopra).
+      await tx.matchPlayer.deleteMany({ where: { matchId: id } });
+      const players = await tx.player.findMany({
+        where: { footballTeamId: { in: [parsed.data.homeTeamId, parsed.data.awayTeamId] } },
+        select: { id: true },
+      });
+      if (players.length > 0) {
+        await tx.matchPlayer.createMany({
+          data: players.map((p) => ({ matchId: id, playerId: p.id })),
+          skipDuplicates: true,
+        });
+      }
+    }
+    return updated;
+  });
   await logAdminAction(Number(admin.id), "UPDATE", "Match", id,
     { ...before, startsAt: before.startsAt.toISOString() },
     { ...match, startsAt: match.startsAt.toISOString() }
@@ -180,11 +285,26 @@ export async function advanceMatchStatus(
     return { message: "Stato non valido." };
   }
 
+  if (!isValidId(id)) return { message: "Partita non valida." };
+
   const match = await db.match.findUnique({
     where: { id },
     include: { _count: { select: { players: true } } },
   });
   if (!match) return { message: "Partita non trovata." };
+  if (match.status === newStatus) return {};
+
+  if (!ALLOWED_TRANSITIONS[match.status].includes(newStatus)) {
+    return { message: `Passaggio di stato non consentito (${match.status} → ${newStatus}).` };
+  }
+  if (newStatus === MatchStatus.CONCLUDED) {
+    const reason = cannotConcludeReason(match);
+    if (reason) return { message: reason };
+  }
+  if (match.status === MatchStatus.CONCLUDED) {
+    const reason = await frozenPhaseReason(match.concludedAt);
+    if (reason) return { message: reason };
+  }
 
   const updateData: Parameters<typeof db.match.update>[0]["data"] = {
     status: newStatus,
@@ -195,7 +315,18 @@ export async function advanceMatchStatus(
   }
 
   await db.match.update({ where: { id }, data: updateData });
-  await logAdminAction(Number(admin.id), "UPDATE", "Match", id, { status: match.status }, { status: newStatus });
+  await logAdminAction(
+    Number(admin.id),
+    "UPDATE",
+    "Match",
+    id,
+    { status: match.status, concludedAt: match.concludedAt, mvpOverridePlayerId: match.mvpOverridePlayerId },
+    {
+      status: newStatus,
+      concludedAt: updateData.concludedAt ?? null,
+      mvpOverridePlayerId: newStatus === MatchStatus.CONCLUDED ? match.mvpOverridePlayerId : null,
+    }
+  );
 
   revalidatePath(`/admin/partite/${id}`);
   revalidatePath("/admin/partite");
@@ -274,8 +405,18 @@ export async function updateMatchScore(_prev: ActionResult | undefined, formData
   if (awayScore !== null && (!Number.isInteger(awayScore) || awayScore < 0 || awayScore > 99))
     return { message: "Risultato ospite non valido." };
 
-  const before = await db.match.findUnique({ where: { id }, select: { homeScore: true, awayScore: true } });
+  if (!isValidId(id)) return { message: "Partita non valida." };
+  const before = await db.match.findUnique({
+    where: { id },
+    select: { homeScore: true, awayScore: true, status: true, _count: { select: { goals: true } } },
+  });
   if (!before) return { message: "Partita non trovata." };
+  if (before._count.goals > 0) {
+    return { message: "Il risultato è calcolato dai marcatori registrati: modifica i gol invece del punteggio." };
+  }
+  if (before.status === MatchStatus.CONCLUDED && (homeScore === null || awayScore === null)) {
+    return { message: "Una partita conclusa deve avere un risultato." };
+  }
 
   await db.match.update({ where: { id }, data: { homeScore, awayScore } });
   await logAdminAction(Number(admin.id), "UPDATE_SCORE", "Match", id,
@@ -293,8 +434,18 @@ export async function deleteMatch(_prev: ActionResult | undefined, formData: For
   const admin = await requireAdmin();
   const id = Number(formData.get("id"));
 
-  const before = await db.match.findUnique({ where: { id } });
+  if (!isValidId(id)) return { message: "Partita non valida." };
+  const before = await db.match.findUnique({
+    where: { id },
+    include: { _count: { select: { goals: true, votes: true, bonuses: true } } },
+  });
   if (!before) return { message: "Partita non trovata." };
+  if (before.knockoutRoundId) {
+    return { message: "Le partite del tabellone a eliminazione diretta non si eliminano da qui: usa la pagina \"Eliminazione diretta\"." };
+  }
+  if (before.status === MatchStatus.CONCLUDED || before._count.goals > 0 || before._count.votes > 0 || before._count.bonuses > 0) {
+    return { message: "Non puoi eliminare una partita conclusa o con gol, voti o bonus: cancellerebbe i punti fanta collegati. Riportala indietro ed elimina prima i dati collegati." };
+  }
 
   await db.match.delete({ where: { id } });
   await logAdminAction(Number(admin.id), "DELETE", "Match", id, { ...before, startsAt: before.startsAt.toISOString() }, null);

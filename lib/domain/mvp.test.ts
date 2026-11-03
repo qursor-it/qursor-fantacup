@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MVP_WINDOW_MS } from "./vote";
-import { resolveMvp } from "./mvp";
+import { DEFAULT_MVP_POINTS, mvpPointsFromBonusType, resolveMvp } from "./mvp";
 
 describe("resolveMvp", () => {
   const closedAt = new Date(Date.now() - MVP_WINDOW_MS - 60_000);
@@ -49,5 +49,37 @@ describe("resolveMvp", () => {
       status: "no_votes",
       playerId: null,
     });
+  });
+});
+
+describe("resolveMvp eligibility", () => {
+  const closedAt = new Date(Date.now() - MVP_WINDOW_MS - 60_000);
+
+  it("ignores votes for players not eligible in the match", () => {
+    expect(
+      resolveMvp({
+        concludedAt: closedAt,
+        votes: [{ playerId: 9 }, { playerId: 9 }, { playerId: 1 }],
+        eligiblePlayerIds: [1, 2],
+      })
+    ).toMatchObject({ status: "resolved", playerId: 1, voteCounts: [{ playerId: 1, votes: 1 }] });
+  });
+
+  it("returns no_votes when only ineligible votes exist", () => {
+    expect(
+      resolveMvp({
+        concludedAt: closedAt,
+        votes: [{ playerId: 9 }],
+        eligiblePlayerIds: [1, 2],
+      })
+    ).toMatchObject({ status: "no_votes" });
+  });
+});
+
+describe("mvpPointsFromBonusType", () => {
+  it("defaults to DEFAULT_MVP_POINTS", () => {
+    expect(DEFAULT_MVP_POINTS).toBe(3);
+    expect(mvpPointsFromBonusType(null)).toBe(3);
+    expect(mvpPointsFromBonusType({ points: "5" })).toBe(5);
   });
 });

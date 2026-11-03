@@ -40,11 +40,16 @@
 * una partita deve avere stati espliciti: bozza, programmata, conclusa, pubblicata
 * quando un admin imposta una partita come conclusa, si apre la finestra di voto MVP
 * il voto MVP resta aperto per 2 ore dalla chiusura della partita
-* gli admin possono chiudere o riaprire la finestra di voto
+* gli admin possono chiudere o riaprire la finestra di voto (**non ancora implementato**: oggi l'unica leva e riportare la partita a "programmata" e riconcluderla, che riapre una nuova finestra di 2 ore)
+* transizioni di stato ammesse: bozza ↔ programmata, programmata/live → conclusa, conclusa → programmata
+* per concludere una partita servono entrambe le squadre e un risultato (anche 0-0)
+* se la partita ha marcatori registrati, il risultato e calcolato dai gol e non si modifica a mano; i marcatori devono appartenere a una delle due squadre della partita
+* una partita conclusa che ricade in una fase di punteggio gia chiusa non puo essere riportata indietro (verrebbe contata due volte); si correggono direttamente gol e bonus
+* una partita conclusa o con gol/voti/bonus non si elimina; le partite del tabellone si gestiscono solo dalla pagina eliminazione diretta
 
 ### Giocatori presenti in partita
 
-* solo i giocatori segnati come presenti nella partita possono essere votati come MVP
+* solo i giocatori segnati come presenti nella partita possono essere votati come MVP; i voti per un giocatore poi rimosso dai presenti non contano
 * nel torneo il set atteso e di 10 giocatori totali per partita
 * la gestione dei giocatori presenti e una responsabilita admin
 
@@ -52,6 +57,7 @@
 
 * un utente puo votare una sola volta per partita
 * il voto non e modificabile dall'utente
+* se un utente cancella l'account i suoi voti restano (anonimizzati, `userId = null`), cosi gli MVP gia assegnati non cambiano
 * i voti dei singoli utenti sono privati
 * durante la finestra di voto si puo mostrare un favorito provvisorio
 * dopo la chiusura si mostra l'MVP finale della partita
@@ -65,9 +71,12 @@
 * il punteggio di una squadra e la somma dei punteggi dei 5 giocatori della rosa
 * il raddoppio del capitano si applica al punteggio del singolo giocatore capitano
 * la classifica principale e cumulata totale
+* a parita di punti le squadre hanno la stessa posizione (1, 1, 3); l'ordine di visualizzazione tra pari e alfabetico
 * il punteggio fanta e articolato in **fasi** (es. gironi, eliminazione, semifinali, finali): alla chiusura di una fase i punti fatti da ogni squadra fino a quel momento (con la rosa di allora) vengono **congelati** in uno snapshot e non cambiano piu, anche se in seguito cambiano le rose o si correggono bonus passati
 * la classifica generale = somma delle fasi congelate + fase in corso; esistono anche viste per singola fase
 * le fasi le chiude l'admin: spuntando "salva storico" all'apertura del mercato, oppure con un pulsante dedicato "Chiudi fase ora"
+* una fase non si puo chiudere finche c'e una partita (nell'intervallo della fase) con MVP non definitivo (voto ancora aperto o pareggio senza scelta admin): altrimenti il bonus MVP andrebbe perso
+* il BonusType con codice `MVP` non puo essere rinominato ne eliminato
 * non esiste il concetto di giornata
 * deve esistere uno storico punteggi per partita
 * il dettaglio dei bonus assegnati deve essere consultabile
@@ -112,6 +121,8 @@
 * gli admin possono aprire una finestra di modifica rosa (periodo + numero massimo di cambi) valida per tutte le squadre, e chiuderla in anticipo
 * esiste un admin di default
 * gli admin possono creare altri admin
+* un admin non puo sospendere un altro admin, ne declassare se stesso o l'ultimo admin; un admin non puo eliminare il proprio account dal profilo
+* cancellare un utente non cancella fasi congelate, finestre mercato e audit log da lui creati (riferimento messo a null)
 * operativamente esiste un solo livello di admin
 
 ### Accesso e visibilita
@@ -120,6 +131,7 @@
 * calendario, informazioni sulle partite, classifica fantasy e dettaglio squadre fantasy sono pubblici
 * autenticazione e richiesta per creare la squadra fantasy e votare
 * il login e email-only
+* le classifiche e le pagine pubbliche non espongono mai l'email degli utenti (se manca il nome si mostra "Utente")
 
 ## Vincoli funzionali da rispettare in applicazione
 

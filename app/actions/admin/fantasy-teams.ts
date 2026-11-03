@@ -31,6 +31,13 @@ export async function adminUpdateFantasyRoster(_prev: ActionResult | undefined, 
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
 
   const { fantasyTeamId, name, captainPlayerId, playerIds } = parsed.data;
+  if (new Set(playerIds).size !== playerIds.length) return { message: "La rosa contiene giocatori duplicati." };
+
+  const before = await db.fantasyTeam.findUnique({
+    where: { id: fantasyTeamId },
+    include: { players: true },
+  });
+  if (!before) return { message: "Squadra fantasy non trovata." };
 
   // Carica i player per validazione
   const players = await db.player.findMany({
@@ -45,11 +52,6 @@ export async function adminUpdateFantasyRoster(_prev: ActionResult | undefined, 
     captainPlayerId
   );
   if (rosterError) return { message: `Rosa non valida: ${rosterError}` };
-
-  const before = await db.fantasyTeam.findUnique({
-    where: { id: fantasyTeamId },
-    include: { players: true },
-  });
 
   await db.$transaction([
     db.fantasyTeamPlayer.deleteMany({ where: { fantasyTeamId } }),

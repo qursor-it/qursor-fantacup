@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { MatchStatus } from "@prisma/client";
-import { getOfficialMvpPlayerId } from "./domain/mvp";
+import { getOfficialMvpPlayerId, mvpPointsFromBonusType } from "./domain/mvp";
 import { measureServerTiming } from "./perf";
 
 export type PlayerMatchScore = {
@@ -37,10 +37,15 @@ export type RankEntry = {
   rank: number;
   fantasyTeamId: number;
   fantasyTeamName: string;
-  userEmail: string;
+  userId: number;
   userName: string | null;
   totalPoints: number;
 };
+
+/** Arrotonda i punti a 2 decimali (evita errori di virgola mobile nelle somme). */
+export function roundPoints(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
 export function computeMvpWinnerId(votes: Array<{ playerId: number }>): number | null {
   if (!votes.length) return null;
@@ -103,7 +108,7 @@ export type FantasyTeamMeta = {
   name: string;
   captainPlayerId: number;
   players: { playerId: number }[];
-  user: { email: string; name: string | null };
+  user: { id: number; name: string | null };
 };
 
 /**
@@ -116,7 +121,7 @@ export function teamPointsFromPlayerTotals(
 ): number {
   const rosterTotal = team.players.reduce((sum, { playerId }) => sum + (playerTotals.get(playerId) ?? 0), 0);
   const captainTotal = playerTotals.get(team.captainPlayerId) ?? 0;
-  return rosterTotal + captainTotal;
+  return roundPoints(rosterTotal + captainTotal);
 }
 
 /**
@@ -147,6 +152,7 @@ export function combinePhasePoints(
   for (const [teamId, pts] of current) {
     totals.set(teamId, (totals.get(teamId) ?? 0) + pts);
   }
+  for (const [teamId, pts] of totals) totals.set(teamId, roundPoints(pts));
   return totals;
 }
 
@@ -207,7 +213,7 @@ export async function computeFantasyTeamPoints(opts?: {
 
 async function getMvpBonus(): Promise<number> {
   const mvpBonusType = await db.bonusType.findFirst({ where: { code: "MVP" }, select: { points: true } });
-  return mvpBonusType ? Number(mvpBonusType.points) : 0;
+  return mvpPointsFromBonusType(mvpBonusType);
 }
 
 async function getFantasyTeamMeta(): Promise<FantasyTeamMeta[]> {
@@ -217,7 +223,7 @@ async function getFantasyTeamMeta(): Promise<FantasyTeamMeta[]> {
       name: true,
       captainPlayerId: true,
       players: { select: { playerId: true } },
-      user: { select: { email: true, name: true } },
+      user: { select: { id: true, name: true } },
     },
   });
 }
@@ -226,9 +232,9 @@ export function rankFromPoints(teams: FantasyTeamMeta[], points: Map<number, num
   const entries: Omit<RankEntry, "rank">[] = teams.map((ft) => ({
     fantasyTeamId: ft.id,
     fantasyTeamName: ft.name,
-    userEmail: ft.user.email,
+    userId: ft.user.id,
     userName: ft.user.name,
-    totalPoints: points.get(ft.id) ?? 0,
+    totalPoints: roundPoints(points.get(ft.id) ?? 0),
   }));
 
   entries.sort(
@@ -237,7 +243,15 @@ export function rankFromPoints(teams: FantasyTeamMeta[], points: Map<number, num
       a.fantasyTeamName.localeCompare(b.fantasyTeamName, "it")
   );
 
-  return entries.map((e, i) => ({ ...e, rank: i + 1 }));
+  // Standard competition ranking: a parita di punti stesso rank (1, 1, 3).
+  let previousPoints: number | null = null;
+  let previousRank = 0;
+  return entries.map((e, i) => {
+    const rank = previousPoints !== null && e.totalPoints === previousPoints ? previousRank : i + 1;
+    previousPoints = e.totalPoints;
+    previousRank = rank;
+    return { ...e, rank };
+  });
 }
 
 /** Compute total ranking across all CONCLUDED matches (rosa attuale, tutte le partite). */
@@ -444,7 +458,7 @@ export async function computeTeamHistory(fantasyTeamId: number): Promise<MatchSc
 
   if (!ft) return [];
 
-  const mvpBonus = mvpBonusType ? Number(mvpBonusType.points) : 0;
+  const mvpBonus = mvpPointsFromBonusType(mvpBonusType);
 
   const windows = buildPhaseRosterWindows(
     phases.map((phase) => ({
@@ -546,7 +560,7 @@ export async function computeTeamHistory(fantasyTeamId: number): Promise<MatchSc
       startsAt: match.startsAt,
       concludedAt: match.concludedAt,
       playerScores,
-      total: playerScores.reduce((s, p) => s + p.finalPoints, 0),
+      total: roundPoints(playerScores.reduce((s, p) => s + p.finalPoints, 0)),
       beforeRegistration,
     };
   });

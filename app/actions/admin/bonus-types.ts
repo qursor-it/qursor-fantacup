@@ -7,12 +7,20 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "./football-teams";
-import { revalidateBonusPublicPaths } from "./revalidate-public";
+import { revalidateBonusPublicPaths, revalidateFantasyPublicPaths } from "./revalidate-public";
+
+/** Codice riservato: il tipo MVP è usato dal calcolo punteggi (lib/scoring.ts). */
+const MVP_CODE = "MVP";
+/** BonusType.points è Decimal(5, 2). */
+const MAX_POINTS = 999.99;
 
 const Schema = z.object({
   code: z.string().min(1).toUpperCase().trim(),
   name: z.string().min(1, "Nome obbligatorio").trim(),
-  points: z.coerce.number({ error: "Valore numerico richiesto" }),
+  points: z.coerce
+    .number({ error: "Valore numerico richiesto" })
+    .min(-MAX_POINTS, `Valore minimo -${MAX_POINTS}`)
+    .max(MAX_POINTS, `Valore massimo ${MAX_POINTS}`),
   isSecret: z.preprocess((v) => v === "true" || v === "on" || v === true, z.boolean()),
 });
 
@@ -48,6 +56,7 @@ export async function createBonusType(_prev: ActionResult | undefined, formData:
 export async function updateBonusType(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return { message: "Bonus type non valido." };
   const parsed = Schema.safeParse({
     code: formData.get("code"),
     name: formData.get("name"),
@@ -58,6 +67,9 @@ export async function updateBonusType(_prev: ActionResult | undefined, formData:
 
   const before = await db.bonusType.findUnique({ where: { id } });
   if (!before) return { message: "Bonus type non trovato." };
+  if (before.code === MVP_CODE && parsed.data.code !== MVP_CODE) {
+    return { errors: { code: [`Il codice ${MVP_CODE} è riservato e non può essere modificato.`] } };
+  }
 
   let bt;
   try {
@@ -70,15 +82,22 @@ export async function updateBonusType(_prev: ActionResult | undefined, formData:
 
   revalidatePath("/admin/bonus-types");
   revalidateBonusPublicPaths();
+  // Il punteggio MVP è letto dal tipo bonus al momento del calcolo; nome/codice
+  // e visibilità compaiono nei dettagli fantasy: invalida sempre classifiche e snapshot.
+  await revalidateFantasyPublicPaths();
   return {};
 }
 
 export async function deleteBonusType(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return { message: "Bonus type non valido." };
 
   const before = await db.bonusType.findUnique({ where: { id } });
   if (!before) return { message: "Bonus type non trovato." };
+  if (before.code === MVP_CODE) {
+    return { message: `Il tipo bonus ${MVP_CODE} è usato dal calcolo punteggi e non può essere eliminato.` };
+  }
 
   try {
     await db.bonusType.delete({ where: { id } });
@@ -89,5 +108,6 @@ export async function deleteBonusType(_prev: ActionResult | undefined, formData:
 
   revalidatePath("/admin/bonus-types");
   revalidateBonusPublicPaths();
+  await revalidateFantasyPublicPaths();
   return {};
 }

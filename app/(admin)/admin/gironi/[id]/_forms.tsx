@@ -124,7 +124,7 @@ export function AddTeamForm({ groupId, availableTeams }: { groupId: number; avai
 
 /* ── Remove team ────────────────────────────────────────────────── */
 export function RemoveTeamForm({ groupId, footballTeamId }: { groupId: number; footballTeamId: number }) {
-  const [, action, pending] = useActionState(
+  const [state, action, pending] = useActionState(
     (_prev: ActionResult | undefined, fd: FormData) => removeTeamFromGroup(fd),
     undefined
   );
@@ -153,6 +153,7 @@ export function RemoveTeamForm({ groupId, footballTeamId }: { groupId: number; f
         >
           {pending ? "..." : "Rimuovi"}
         </button>
+        {state?.message && <span className="ml-1 text-[11px]" style={{ color: "#991B1B" }}>{state.message}</span>}
       </form>
     </>
   );
@@ -160,7 +161,7 @@ export function RemoveTeamForm({ groupId, footballTeamId }: { groupId: number; f
 
 /* ── Toggle qualified ───────────────────────────────────────────── */
 export function ToggleQualifiedForm({ groupId, footballTeamId, qualified }: { groupId: number; footballTeamId: number; qualified: boolean }) {
-  const [, action, pending] = useActionState(
+  const [state, action, pending] = useActionState(
     (_prev: ActionResult | undefined, fd: FormData) => setTeamQualified(fd),
     undefined
   );
@@ -181,6 +182,7 @@ export function ToggleQualifiedForm({ groupId, footballTeamId, qualified }: { gr
       >
         {pending ? "..." : qualified ? "✓ Qualificata" : "Qualifica"}
       </button>
+      {state?.message && <span className="ml-1 text-[11px]" style={{ color: "#991B1B" }}>{state.message}</span>}
     </form>
   );
 }

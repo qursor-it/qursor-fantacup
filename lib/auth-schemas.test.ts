@@ -56,6 +56,20 @@ describe("RegisterSchema", () => {
       }
     });
 
+    it("rifiuta un nome di soli spazi", () => {
+      const result = RegisterSchema.safeParse({ ...valid, name: "     " });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const msgs = result.error.flatten().fieldErrors.name ?? [];
+        expect(msgs[0]).toBe("Il nome è obbligatorio.");
+      }
+    });
+
+    it("rifiuta un nome che dopo il trim ha un solo carattere", () => {
+      const result = RegisterSchema.safeParse({ ...valid, name: " M " });
+      expect(result.success).toBe(false);
+    });
+
     it("accetta un nome di esattamente 2 caratteri", () => {
       const result = RegisterSchema.safeParse({ ...valid, name: "Al" });
       expect(result.success).toBe(true);
@@ -86,6 +100,12 @@ describe("RegisterSchema", () => {
           "Inserisci un indirizzo email valido (es. nome@dominio.it)."
         );
       }
+    });
+
+    it("accetta un'email con spazi attorno e la normalizza", () => {
+      const result = RegisterSchema.safeParse({ ...valid, email: "  Mario@Example.com " });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.email).toBe("mario@example.com");
     });
 
     it("rifiuta un'email malformata", () => {

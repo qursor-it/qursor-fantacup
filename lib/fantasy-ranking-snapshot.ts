@@ -18,7 +18,7 @@ export async function readFantasyRankingSnapshot(): Promise<RankEntry[] | null> 
   return measureServerTiming("scoring.snapshot.cumulative.read", async () => {
     const [rows, teamCount] = await Promise.all([
       db.fantasyRankingSnapshot.findMany({
-        orderBy: { rank: "asc" },
+        orderBy: [{ rank: "asc" }, { fantasyTeam: { name: "asc" } }],
         select: {
           fantasyTeamId: true,
           rank: true,
@@ -27,7 +27,7 @@ export async function readFantasyRankingSnapshot(): Promise<RankEntry[] | null> 
           fantasyTeam: {
             select: {
               name: true,
-              user: { select: { email: true, name: true } },
+              user: { select: { id: true, name: true } },
             },
           },
         },
@@ -45,7 +45,7 @@ export async function readFantasyRankingSnapshot(): Promise<RankEntry[] | null> 
       rank: row.rank,
       fantasyTeamId: row.fantasyTeamId,
       fantasyTeamName: row.fantasyTeam.name,
-      userEmail: row.fantasyTeam.user.email,
+      userId: row.fantasyTeam.user.id,
       userName: row.fantasyTeam.user.name,
       totalPoints: Number(row.totalPoints),
     }));

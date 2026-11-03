@@ -146,7 +146,7 @@ export default function PartiteTable({ rows }: { rows: Row[] }) {
                     <span>{row.awayTeam?.shortName ?? row.awayTeam?.name ?? row.awaySeed ?? "TBD"}</span>
                   </div>
                   <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    {new Date(row.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
+                    {new Date(row.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}
                     {" · "}{row._count.players} giocatori
                   </div>
                 </div>

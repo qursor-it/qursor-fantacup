@@ -8,14 +8,24 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "./football-teams";
+import { revalidateFantasyPublicPaths } from "./revalidate-public";
+
+function isPositiveId(n: number): boolean {
+  return Number.isInteger(n) && n > 0;
+}
 
 export async function suspendUser(formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const userId = Number(formData.get("userId"));
+  if (!isPositiveId(userId)) return { message: "Utente non valido." };
 
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) return { message: "Utente non trovato." };
   if (user.id === Number(admin.id)) return { message: "Non puoi sospendere te stesso." };
+  if (user.role === UserRole.ADMIN) {
+    return { message: "Non puoi sospendere un admin: rimuovi prima i privilegi admin." };
+  }
+  if (user.isSuspended) return { message: "Utente già sospeso." };
 
   await db.user.update({ where: { id: userId }, data: { isSuspended: true } });
   await logAdminAction(Number(admin.id), "SUSPEND_USER", "User", userId, { isSuspended: false }, { isSuspended: true });
@@ -28,6 +38,11 @@ export async function suspendUser(formData: FormData): Promise<ActionResult> {
 export async function unsuspendUser(formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const userId = Number(formData.get("userId"));
+  if (!isPositiveId(userId)) return { message: "Utente non valido." };
+
+  const user = await db.user.findUnique({ where: { id: userId }, select: { isSuspended: true } });
+  if (!user) return { message: "Utente non trovato." };
+  if (!user.isSuspended) return { message: "Utente non sospeso." };
 
   await db.user.update({ where: { id: userId }, data: { isSuspended: false } });
   await logAdminAction(Number(admin.id), "UNSUSPEND_USER", "User", userId, { isSuspended: true }, { isSuspended: false });
@@ -40,6 +55,7 @@ export async function unsuspendUser(formData: FormData): Promise<ActionResult> {
 export async function promoteToAdmin(formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const userId = Number(formData.get("userId"));
+  if (!isPositiveId(userId)) return { message: "Utente non valido." };
 
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) return { message: "Utente non trovato." };
@@ -56,11 +72,16 @@ export async function promoteToAdmin(formData: FormData): Promise<ActionResult> 
 export async function demoteToUser(formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const userId = Number(formData.get("userId"));
+  if (!isPositiveId(userId)) return { message: "Utente non valido." };
 
   if (userId === Number(admin.id)) return { message: "Non puoi rimuovere i tuoi privilegi admin." };
 
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) return { message: "Utente non trovato." };
+  if (user.role !== UserRole.ADMIN) return { message: "L'utente non è un admin." };
+
+  const adminCount = await db.user.count({ where: { role: UserRole.ADMIN } });
+  if (adminCount <= 1) return { message: "Non puoi rimuovere l'ultimo admin." };
 
   await db.user.update({ where: { id: userId }, data: { role: UserRole.USER } });
   await logAdminAction(Number(admin.id), "DEMOTE_USER", "User", userId, { role: "ADMIN" }, { role: "USER" });
@@ -126,6 +147,7 @@ export async function adminDeleteUser(
   const admin = await requireAdmin();
 
   const userId = Number(formData.get("userId"));
+  if (!isPositiveId(userId)) return { error: "Utente non valido." };
 
   const targetUser = await db.user.findUnique({ where: { id: userId } });
   if (!targetUser) return { error: "Utente non trovato." };
@@ -144,6 +166,9 @@ export async function adminDeleteUser(
   await db.user.delete({ where: { id: userId } });
 
   revalidatePath("/admin/utenti");
+  revalidatePath("/admin/squadre-fantasy");
+  // La cancellazione rimuove in cascata la squadra fantasy dell'utente.
+  await revalidateFantasyPublicPaths();
   return { success: true };
 }
 

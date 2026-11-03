@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import type { RankEntry } from "@/lib/scoring";
 
 export default function SquadreFantasyRankings({ rankings }: { rankings: RankEntry[] }) {
-  const [email, setEmail] = useState<string | null>(null);
+  const [myUserId, setMyUserId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -20,10 +20,11 @@ export default function SquadreFantasyRankings({ rankings }: { rankings: RankEnt
         });
         if (!response.ok) return;
 
-        const session = await response.json() as { user?: { email?: string | null } | null };
-        if (!controller.signal.aborted) setEmail(session.user?.email ?? null);
+        const session = await response.json() as { user?: { id?: string | null } | null };
+        const id = Number(session.user?.id);
+        if (!controller.signal.aborted) setMyUserId(Number.isInteger(id) && id > 0 ? id : null);
       } catch {
-        if (!controller.signal.aborted) setEmail(null);
+        if (!controller.signal.aborted) setMyUserId(null);
       }
     }
 
@@ -37,8 +38,7 @@ export default function SquadreFantasyRankings({ rankings }: { rankings: RankEnt
     return rankings.filter(
       (r) =>
         r.fantasyTeamName.toLowerCase().includes(q) ||
-        (r.userName ?? "").toLowerCase().includes(q) ||
-        r.userEmail.toLowerCase().includes(q)
+        (r.userName ?? "").toLowerCase().includes(q)
     );
   }, [rankings, search]);
 
@@ -81,7 +81,7 @@ export default function SquadreFantasyRankings({ rankings }: { rankings: RankEnt
       ) : (
         <div className="flex flex-col mt-3">
           {filtered.map((r, idx) => {
-            const isMe = email === r.userEmail;
+            const isMe = myUserId !== null && myUserId === r.userId;
             return (
               <Link
                 key={r.fantasyTeamId}
@@ -97,7 +97,7 @@ export default function SquadreFantasyRankings({ rankings }: { rankings: RankEnt
                 <div className="flex flex-col gap-1 flex-1 min-w-0">
                   <span className="text-sm truncate font-medium text-black">{r.fantasyTeamName}</span>
                   <span className="text-xs truncate" style={{ color: "rgba(0,0,0,0.65)" }}>
-                    {r.userName ?? r.userEmail}
+                    {r.userName ?? "Utente"}
                   </span>
                 </div>
                 <span className="text-sm font-semibold shrink-0 text-black">

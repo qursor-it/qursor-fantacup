@@ -174,12 +174,12 @@ model MatchPlayer {
 
 model Vote {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  userId    Int?     // null = voto anonimizzato (utente cancellato): il voto resta valido per l'MVP
   matchId   Int
   playerId  Int
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
@@ -259,11 +259,11 @@ model RosterEditWindow {
   opensAt     DateTime
   closesAt    DateTime
   maxChanges  Int               // sostituzioni giocatore consentite per utente
-  createdById Int
+  createdById Int?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  createdBy   User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
   usages      RosterEditUsage[]
 
   @@index([opensAt, closesAt])
@@ -293,10 +293,10 @@ model ScoringPhase {
   order       Int
   startsAt    DateTime?           // confine inferiore = closedAt della fase precedente (null per la prima)
   closedAt    DateTime            // momento dello snapshot
-  createdById Int
+  createdById Int?
   createdAt   DateTime            @default(now())
 
-  createdBy   User                @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
   scores      ScoringPhaseScore[]
 
   @@index([order])
@@ -333,7 +333,7 @@ model FantasyRankingSnapshot {
 
 model AdminAuditLog {
   id          Int      @id @default(autoincrement())
-  adminUserId Int
+  adminUserId Int?
   action      String
   entityType  String
   entityId    String?
@@ -341,7 +341,7 @@ model AdminAuditLog {
   after       Json?
   createdAt   DateTime @default(now())
 
-  adminUser   User     @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminUser   User?    @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
 
   @@index([adminUserId])
   @@index([entityType, entityId])

@@ -5,11 +5,18 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
 import type { ActionResult } from "./football-teams";
+import { revalidateDcupPublicPaths } from "./revalidate-public";
+
+function isPositiveId(n: number): boolean {
+  return Number.isInteger(n) && n > 0;
+}
 
 export async function addMatchPlayer(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const matchId = Number(formData.get("matchId"));
   const playerId = Number(formData.get("playerId"));
+  if (!isPositiveId(matchId)) return { message: "Partita non valida." };
+  if (!isPositiveId(playerId)) return { message: "Seleziona un giocatore." };
 
   const match = await db.match.findUnique({
     where: { id: matchId },
@@ -32,12 +39,14 @@ export async function addMatchPlayer(_prev: ActionResult | undefined, formData: 
 
   await logAdminAction(Number(admin.id), "ADD_PLAYER", "MatchPlayer", `${matchId}_${playerId}`, null, { matchId, playerId });
   revalidatePath(`/admin/partite/${matchId}`);
+  await revalidateDcupPublicPaths(matchId);
   return {};
 }
 
 export async function addAllMatchPlayers(formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const matchId = Number(formData.get("matchId"));
+  if (!isPositiveId(matchId)) return { message: "Partita non valida." };
 
   const match = await db.match.findUnique({
     where: { id: matchId },
@@ -66,6 +75,7 @@ export async function addAllMatchPlayers(formData: FormData): Promise<ActionResu
     count: players.length,
   });
   revalidatePath(`/admin/partite/${matchId}`);
+  await revalidateDcupPublicPaths(matchId);
   return {};
 }
 
@@ -73,10 +83,12 @@ export async function removeMatchPlayer(formData: FormData): Promise<ActionResul
   const admin = await requireAdmin();
   const matchId = Number(formData.get("matchId"));
   const playerId = Number(formData.get("playerId"));
+  if (!isPositiveId(matchId) || !isPositiveId(playerId)) return { message: "Dati non validi." };
 
   await db.matchPlayer.deleteMany({ where: { matchId, playerId } });
   await logAdminAction(Number(admin.id), "REMOVE_PLAYER", "MatchPlayer", `${matchId}_${playerId}`, { matchId, playerId }, null);
 
   revalidatePath(`/admin/partite/${matchId}`);
+  await revalidateDcupPublicPaths(matchId);
   return {};
 }

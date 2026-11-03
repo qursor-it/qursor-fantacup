@@ -212,7 +212,7 @@ export default async function EditSquadraPage({ params }: { params: Promise<{ id
                       {hs !== null && as_ !== null ? `${hs} — ${as_}` : "—"}
                     </span>
                     <span className="text-[11px] flex-shrink-0 hidden sm:block" style={{ color: "var(--text-muted)" }}>
-                      {new Date(m.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
+                      {new Date(m.startsAt).toLocaleDateString("it-IT", { day: "numeric", month: "short", timeZone: "UTC" })}
                     </span>
                   </Link>
                 );

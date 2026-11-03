@@ -3,7 +3,9 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { UserRole } from "@prisma/client";
 import { requireAuth } from "@/lib/session";
+import { revalidateFantasyPublicPaths } from "@/app/actions/admin/revalidate-public";
 import { signOut } from "@/lib/auth";
 import { passwordChangeLimiter, deleteAccountLimiter, checkRateLimit } from "@/lib/rate-limit";
 
@@ -102,14 +104,23 @@ export async function deleteOwnAccount(
 
   const dbUser = await db.user.findUnique({
     where: { id: Number(user.id) },
-    select: { passwordHash: true },
+    select: { passwordHash: true, role: true },
   });
   if (!dbUser) return { error: "Utente non trovato." };
+  if (dbUser.role === UserRole.ADMIN) {
+    return {
+      error:
+        "Gli account amministratore non possono essere eliminati da qui. Chiedi a un altro admin di declassarti prima.",
+    };
+  }
 
   const valid = await bcrypt.compare(password, dbUser.passwordHash);
   if (!valid) return { error: "Password non corretta." };
 
   await db.user.delete({ where: { id: Number(user.id) } });
+  // La squadra fanta viene eliminata in cascata: aggiorna classifiche e cache pubbliche.
+  // I voti MVP restano (anonimizzati) così gli MVP già assegnati non cambiano.
+  await revalidateFantasyPublicPaths();
 
   // signOut lancia NEXT_REDIRECT internamente — la riga successiva è irraggiungibile.
   await signOut({ redirectTo: "/?deleted=1" });

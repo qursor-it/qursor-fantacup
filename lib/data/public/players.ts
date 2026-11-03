@@ -1,8 +1,10 @@
 import "server-only";
 
+import { MatchStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { resolveTeamFlag } from "@/lib/flags";
-import { getOfficialMvpPlayerId } from "@/lib/domain/mvp";
+import { getOfficialMvpPlayerId, mvpPointsFromBonusType } from "@/lib/domain/mvp";
+import { roundPoints } from "@/lib/scoring";
 import { cachePublicData, PUBLIC_CACHE_TAGS, PUBLIC_CACHE_TTL_SECONDS } from "./cache";
 
 export type PublicScorerRankingRow = {
@@ -120,7 +122,9 @@ export const getPublicScorerRanking = cachePublicData(
 export const getPublicPlayersGroups = cachePublicData(
   "data.public.players.index.fetch",
   async (): Promise<PublicPlayersGroup[]> => {
-    const [players, appearances, goals, bonuses, totalFantasyTeams] = await Promise.all([
+    // I punti seguono esattamente lib/scoring.ts: solo partite CONCLUDED, bonus
+    // con codice MVP esclusi (l'MVP deriva dai voti/override) + bonus MVP ufficiale.
+    const [players, appearances, goals, bonuses, totalFantasyTeams, mvpMatches, mvpBonusType] = await Promise.all([
       db.player.findMany({
         orderBy: [{ footballTeam: { name: "asc" } }, { role: "asc" }, { name: "asc" }],
         select: {
@@ -135,6 +139,7 @@ export const getPublicPlayersGroups = cachePublicData(
         },
       }),
       db.matchPlayer.findMany({
+        where: { match: { status: MatchStatus.CONCLUDED } },
         select: {
           playerId: true,
           match: {
@@ -160,6 +165,7 @@ export const getPublicPlayersGroups = cachePublicData(
         select: { matchId: true, scorerId: true, isOwnGoal: true },
       }),
       db.playerMatchBonus.findMany({
+        where: { match: { status: MatchStatus.CONCLUDED }, bonusType: { code: { not: "MVP" } } },
         select: {
           playerId: true,
           matchId: true,
@@ -169,7 +175,30 @@ export const getPublicPlayersGroups = cachePublicData(
         },
       }),
       db.fantasyTeam.count(),
+      db.match.findMany({
+        where: { status: MatchStatus.CONCLUDED },
+        select: {
+          id: true,
+          concludedAt: true,
+          mvpOverridePlayerId: true,
+          votes: { select: { playerId: true } },
+          players: { select: { playerId: true } },
+        },
+      }),
+      db.bonusType.findFirst({ where: { code: "MVP" }, select: { points: true } }),
     ]);
+
+    const mvpBonus = mvpPointsFromBonusType(mvpBonusType);
+    const mvpByMatch = new Map<number, number>();
+    for (const match of mvpMatches) {
+      const mvpId = getOfficialMvpPlayerId({
+        concludedAt: match.concludedAt,
+        votes: match.votes,
+        mvpOverridePlayerId: match.mvpOverridePlayerId,
+        eligiblePlayerIds: match.players.map((p) => p.playerId),
+      });
+      if (mvpId !== null) mvpByMatch.set(match.id, mvpId);
+    }
 
     const appearancesByPlayer = new Map<number, typeof appearances>();
     for (const appearance of appearances) {
@@ -199,9 +228,10 @@ export const getPublicPlayersGroups = cachePublicData(
 
       const totalGoals = playerGoals.filter((goal) => !goal.isOwnGoal).length;
       const totalOwnGoals = playerGoals.filter((goal) => goal.isOwnGoal).length;
-      const totalBonusPoints = playerBonuses.reduce(
-        (sum, bonus) => sum + Number(bonus.points),
-        0
+      let mvpCount = 0;
+      for (const mvpId of mvpByMatch.values()) if (mvpId === player.id) mvpCount += 1;
+      const totalBonusPoints = roundPoints(
+        playerBonuses.reduce((sum, bonus) => sum + Number(bonus.points), 0) + mvpCount * mvpBonus
       );
 
       const pickRate = totalFantasyTeams > 0
@@ -224,9 +254,10 @@ export const getPublicPlayersGroups = cachePublicData(
           (goal) => goal.matchId === match.id && !goal.isOwnGoal
         ).length;
         const matchBonusEntries = playerBonuses.filter((b) => b.matchId === match.id);
-        const matchBonusPoints = matchBonusEntries.reduce(
-          (sum, bonus) => sum + Number(bonus.points),
-          0
+        const isMvp = mvpByMatch.get(match.id) === player.id;
+        const matchBonusPoints = roundPoints(
+          matchBonusEntries.reduce((sum, bonus) => sum + Number(bonus.points), 0) +
+            (isMvp ? mvpBonus : 0)
         );
         const won = hs !== null && as_ !== null && hs > as_;
         const lost = hs !== null && as_ !== null && hs < as_;
@@ -244,11 +275,14 @@ export const getPublicPlayersGroups = cachePublicData(
           lost,
           matchGoals,
           matchBonusPoints,
-          bonuses: matchBonusEntries.map((b) => ({
-            name: b.bonusType.name,
-            points: Number(b.points),
-            quantity: b.quantity,
-          })),
+          bonuses: [
+            ...matchBonusEntries.map((b) => ({
+              name: b.bonusType.name,
+              points: Number(b.points),
+              quantity: b.quantity,
+            })),
+            ...(isMvp ? [{ name: "MVP", points: mvpBonus, quantity: 1 }] : []),
+          ],
         };
       });
 
@@ -313,7 +347,7 @@ export async function getPublicPlayerById(id: number): Promise<PublicPlayerGridR
 
   const [appearances, goals, bonuses, mvpBonusType] = await Promise.all([
     db.matchPlayer.findMany({
-      where: { playerId: id, match: { concludedAt: { not: null } } },
+      where: { playerId: id, match: { status: MatchStatus.CONCLUDED } },
       select: {
         match: {
           select: {
@@ -343,7 +377,7 @@ export async function getPublicPlayerById(id: number): Promise<PublicPlayerGridR
       select: { matchId: true, isOwnGoal: true },
     }),
     db.playerMatchBonus.findMany({
-      where: { playerId: id, bonusType: { code: { not: "MVP" } } },
+      where: { playerId: id, match: { status: MatchStatus.CONCLUDED }, bonusType: { code: { not: "MVP" } } },
       select: {
         matchId: true,
         points: true,
@@ -354,8 +388,9 @@ export async function getPublicPlayerById(id: number): Promise<PublicPlayerGridR
     db.bonusType.findFirst({ where: { code: "MVP" }, select: { name: true, points: true } }),
   ]);
 
-  const mvpBonus = mvpBonusType ? Number(mvpBonusType.points) : 0;
+  const mvpBonus = mvpPointsFromBonusType(mvpBonusType);
   const mvpBonusName = "MVP";
+  let mvpCount = 0;
 
   const totalGoals = goals.filter((g) => !g.isOwnGoal).length;
   const totalOwnGoals = goals.filter((g) => g.isOwnGoal).length;
@@ -381,10 +416,12 @@ export async function getPublicPlayerById(id: number): Promise<PublicPlayerGridR
       eligiblePlayerIds: match.players.map((p) => p.playerId),
     });
     const isMvp = mvpId === id;
+    if (isMvp) mvpCount += 1;
 
-    const matchBonusPoints =
+    const matchBonusPoints = roundPoints(
       matchBonusEntries.reduce((sum, b) => sum + Number(b.points), 0) +
-      (isMvp ? mvpBonus : 0);
+      (isMvp ? mvpBonus : 0)
+    );
 
     return {
       matchId: match.id,
@@ -410,7 +447,10 @@ export async function getPublicPlayerById(id: number): Promise<PublicPlayerGridR
     };
   });
 
-  const totalBonusPoints = matchStats.reduce((sum, ms) => sum + ms.matchBonusPoints, 0);
+  // Come in scoring: tutti i bonus (non MVP) delle partite concluse + bonus MVP ufficiale.
+  const totalBonusPoints = roundPoints(
+    bonuses.reduce((sum, b) => sum + Number(b.points), 0) + mvpCount * mvpBonus
+  );
 
   return {
     id: player.id,
@@ -441,7 +481,7 @@ export const getPublicFantasyPlayerPickRows = cachePublicData(
           fantasyTeams: {
             select: {
               fantasyTeam: {
-                select: { id: true, name: true, user: { select: { name: true, email: true } } },
+                select: { id: true, name: true, user: { select: { name: true } } },
               },
             },
           },
@@ -457,7 +497,7 @@ export const getPublicFantasyPlayerPickRows = cachePublicData(
           .map(({ fantasyTeam }) => ({
             id: fantasyTeam.id,
             name: fantasyTeam.name,
-            ownerLabel: fantasyTeam.user.name ?? fantasyTeam.user.email,
+            ownerLabel: fantasyTeam.user.name ?? "Utente",
           }))
           .sort((a, b) => a.name.localeCompare(b.name, "it"));
 

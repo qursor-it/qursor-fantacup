@@ -43,12 +43,20 @@ async function deletePlayerWithMatchRefs(playerId: number): Promise<void> {
   ]);
 }
 
+async function footballTeamExists(id: number): Promise<boolean> {
+  return (await db.footballTeam.count({ where: { id } })) > 0;
+}
+
+function isPositiveId(n: number): boolean {
+  return Number.isInteger(n) && n > 0;
+}
+
+function fantasyTeamsLabel(teamNames: string[]): string {
+  return teamNames.length === 1 ? "una squadra fantasy" : `${teamNames.length} squadre fantasy`;
+}
+
 function fantasyTeamsError(teamNames: string[]): string {
-  const label =
-    teamNames.length === 1
-      ? "una squadra fantasy"
-      : `${teamNames.length} squadre fantasy`;
-  return `Impossibile eliminare: il giocatore fa parte di ${label} (${teamNames.join(", ")}).`;
+  return `Impossibile eliminare: il giocatore fa parte di ${fantasyTeamsLabel(teamNames)} (${teamNames.join(", ")}).`;
 }
 
 export async function createPlayer(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
@@ -59,6 +67,9 @@ export async function createPlayer(_prev: ActionResult | undefined, formData: Fo
     footballTeamId: formData.get("footballTeamId"),
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+  if (!(await footballTeamExists(parsed.data.footballTeamId))) {
+    return { errors: { footballTeamId: ["Squadra non trovata."] } };
+  }
 
   const player = await db.player.create({ data: parsed.data });
   await logAdminAction(Number(admin.id), "CREATE", "Player", player.id, null, player);
@@ -71,15 +82,28 @@ export async function createPlayer(_prev: ActionResult | undefined, formData: Fo
 export async function updatePlayer(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const id = Number(formData.get("id"));
+  if (!isPositiveId(id)) return { message: "Giocatore non valido." };
   const parsed = Schema.safeParse({
     name: formData.get("name"),
     role: formData.get("role"),
     footballTeamId: formData.get("footballTeamId"),
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+  if (!(await footballTeamExists(parsed.data.footballTeamId))) {
+    return { errors: { footballTeamId: ["Squadra non trovata."] } };
+  }
 
   const before = await db.player.findUnique({ where: { id } });
   if (!before) return { message: "Giocatore non trovato." };
+
+  if (before.footballTeamId !== parsed.data.footballTeamId) {
+    const fantasyTeams = await fantasyTeamsUsingPlayer(id);
+    if (fantasyTeams.length > 0) {
+      return {
+        message: `Impossibile cambiare squadra: il giocatore fa parte di ${fantasyTeamsLabel(fantasyTeams)} (${fantasyTeams.join(", ")}) e la rosa diventerebbe non valida. Modifica prima le rose fantasy.`,
+      };
+    }
+  }
 
   const player = await db.player.update({ where: { id }, data: parsed.data });
   await logAdminAction(Number(admin.id), "UPDATE", "Player", id, before, player);
@@ -92,6 +116,7 @@ export async function updatePlayer(_prev: ActionResult | undefined, formData: Fo
 export async function deletePlayer(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const id = Number(formData.get("id"));
+  if (!isPositiveId(id)) return { message: "Giocatore non valido." };
 
   const before = await db.player.findUnique({ where: { id } });
   if (!before) return { message: "Giocatore non trovato." };
@@ -119,7 +144,7 @@ export async function removePlayerFromFootballTeam(
   const playerId = Number(formData.get("playerId"));
   const footballTeamId = Number(formData.get("footballTeamId"));
 
-  if (!playerId || !footballTeamId) return { message: "Dati mancanti." };
+  if (!isPositiveId(playerId) || !isPositiveId(footballTeamId)) return { message: "Dati mancanti." };
 
   const before = await db.player.findFirst({
     where: { id: playerId, footballTeamId },

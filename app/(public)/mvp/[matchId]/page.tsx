@@ -13,8 +13,10 @@ export default async function MvpDetailPage({
   params: Promise<{ matchId: string }>;
 }) {
   const { matchId } = await params;
+  const matchIdNum = Number(matchId);
+  if (!Number.isInteger(matchIdNum) || matchIdNum <= 0) notFound();
   const [detail, user] = await Promise.all([
-    getMvpMatchDetail(Number(matchId)),
+    getMvpMatchDetail(matchIdNum),
     getCurrentUser(),
   ]);
   if (!detail) notFound();

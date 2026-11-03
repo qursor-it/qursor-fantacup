@@ -2,6 +2,18 @@ import { isMvpWindowOpen } from "./vote";
 
 export type MvpVote = { playerId: number };
 
+/** Punti di default per l'MVP ufficiale se il BonusType `MVP` non e configurato. */
+export const DEFAULT_MVP_POINTS = 3;
+
+/** Punti MVP dal BonusType `MVP` (se presente), altrimenti DEFAULT_MVP_POINTS. */
+export function mvpPointsFromBonusType(
+  bonusType: { points: number | string | { toString(): string } } | null | undefined
+): number {
+  if (!bonusType) return DEFAULT_MVP_POINTS;
+  const value = Number(bonusType.points);
+  return Number.isFinite(value) ? value : DEFAULT_MVP_POINTS;
+}
+
 export type MvpVoteCount = {
   playerId: number;
   votes: number;
@@ -35,7 +47,10 @@ export function resolveMvp({
   mvpOverridePlayerId?: number | null;
   eligiblePlayerIds?: number[];
 }): MvpResolution {
-  const voteCounts = countMvpVotes(votes);
+  // I voti per giocatori non presenti in partita non contano.
+  const eligible = eligiblePlayerIds ? new Set(eligiblePlayerIds) : null;
+  const countedVotes = eligible ? votes.filter((vote) => eligible.has(vote.playerId)) : votes;
+  const voteCounts = countMvpVotes(countedVotes);
 
   if (!concludedAt) {
     return { status: "no_votes", playerId: null, voteCounts };
@@ -46,7 +61,7 @@ export function resolveMvp({
   }
 
   if (mvpOverridePlayerId) {
-    const validOverride = !eligiblePlayerIds || eligiblePlayerIds.includes(mvpOverridePlayerId);
+    const validOverride = !eligible || eligible.has(mvpOverridePlayerId);
     if (validOverride) {
       return { status: "resolved", playerId: mvpOverridePlayerId, source: "admin", voteCounts };
     }

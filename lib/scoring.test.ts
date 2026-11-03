@@ -237,7 +237,7 @@ describe("rankFromPoints", () => {
     name,
     captainPlayerId: 0,
     players: [],
-    user: { email: `${name.toLowerCase()}@x.it`, name: null },
+    user: { id, name: null },
   });
 
   it("sorts by points desc and assigns sequential ranks", () => {
@@ -263,7 +263,29 @@ describe("rankFromPoints", () => {
     ]);
     const ranked = rankFromPoints(teams, points);
     expect(ranked.map((r) => r.fantasyTeamName)).toEqual(["Alpha", "Zeta"]);
-    expect(ranked.map((r) => r.rank)).toEqual([1, 2]);
+    expect(ranked.map((r) => r.rank)).toEqual([1, 1]);
+  });
+
+  it("uses standard competition ranking for ties (1, 1, 3)", () => {
+    const teams = [meta(1, "A"), meta(2, "B"), meta(3, "C"), meta(4, "D")];
+    const points = new Map([
+      [1, 10],
+      [2, 10],
+      [3, 7],
+      [4, 7],
+    ]);
+    expect(rankFromPoints(teams, points).map((r) => r.rank)).toEqual([1, 1, 3, 3]);
+  });
+
+  it("rounds points to 2 decimals so float noise does not break ties", () => {
+    const teams = [meta(1, "A"), meta(2, "B")];
+    const points = new Map([
+      [1, 0.1 + 0.2],
+      [2, 0.3],
+    ]);
+    const ranked = rankFromPoints(teams, points);
+    expect(ranked.map((r) => r.totalPoints)).toEqual([0.3, 0.3]);
+    expect(ranked.map((r) => r.rank)).toEqual([1, 1]);
   });
 
   it("treats teams without a points entry as 0", () => {

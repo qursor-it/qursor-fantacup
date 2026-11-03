@@ -73,21 +73,87 @@ export async function initBracket(_prev: ActionResult | undefined, _formData: Fo
   return {};
 }
 
+function parsePositiveId(value: FormDataEntryValue | null): number | null {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 export async function assignKnockoutTeams(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const matchId = Number(formData.get("matchId"));
-  const homeTeamId = Number(formData.get("homeTeamId"));
-  const awayTeamId = Number(formData.get("awayTeamId"));
+  const matchId = parsePositiveId(formData.get("matchId"));
+  const homeTeamId = parsePositiveId(formData.get("homeTeamId"));
+  const awayTeamId = parsePositiveId(formData.get("awayTeamId"));
 
+  if (!matchId) return { message: "Partita non valida." };
   if (!homeTeamId || !awayTeamId) return { message: "Seleziona entrambe le squadre." };
   if (homeTeamId === awayTeamId) return { message: "Le due squadre devono essere diverse." };
 
-  const before = await db.match.findUnique({ where: { id: matchId }, select: { homeTeamId: true, awayTeamId: true } });
-  await db.match.update({
+  const before = await db.match.findUnique({
     where: { id: matchId },
-    data: { homeTeamId, awayTeamId },
+    select: {
+      homeTeamId: true,
+      awayTeamId: true,
+      knockoutRoundId: true,
+      status: true,
+      _count: { select: { goals: true, bonuses: true } },
+    },
   });
-  await logAdminAction(Number(admin.id), "ASSIGN_KNOCKOUT_TEAMS", "Match", matchId, before, { homeTeamId, awayTeamId });
+  if (!before) return { message: "Partita non trovata." };
+  if (before.knockoutRoundId === null) {
+    return { message: "La partita non appartiene alla fase a eliminazione diretta." };
+  }
+  if (before.status === MatchStatus.CONCLUDED) {
+    return { message: "Non puoi cambiare le squadre di una partita conclusa." };
+  }
+  if (before._count.goals > 0 || before._count.bonuses > 0) {
+    return { message: "Non puoi cambiare le squadre di una partita con goal o bonus registrati: eliminali prima." };
+  }
+
+  const teams = await db.footballTeam.findMany({
+    where: { id: { in: [homeTeamId, awayTeamId] } },
+    select: { id: true },
+  });
+  if (teams.length !== 2) return { message: "Una o entrambe le squadre non esistono." };
+
+  const conflict = await db.match.findFirst({
+    where: {
+      knockoutRoundId: before.knockoutRoundId,
+      id: { not: matchId },
+      OR: [
+        { homeTeamId: { in: [homeTeamId, awayTeamId] } },
+        { awayTeamId: { in: [homeTeamId, awayTeamId] } },
+      ],
+    },
+    select: { id: true },
+  });
+  if (conflict) {
+    return { message: "Una delle squadre è già assegnata a un'altra partita dello stesso turno." };
+  }
+
+  const players = await db.player.findMany({
+    where: { footballTeamId: { in: [homeTeamId, awayTeamId] } },
+    select: { id: true },
+  });
+
+  await db.$transaction([
+    db.match.update({
+      where: { id: matchId },
+      data: { homeTeamId, awayTeamId },
+    }),
+    db.matchPlayer.deleteMany({ where: { matchId } }),
+    db.matchPlayer.createMany({
+      data: players.map((p) => ({ matchId, playerId: p.id })),
+      skipDuplicates: true,
+    }),
+  ]);
+  await logAdminAction(
+    Number(admin.id),
+    "ASSIGN_KNOCKOUT_TEAMS",
+    "Match",
+    matchId,
+    { homeTeamId: before.homeTeamId, awayTeamId: before.awayTeamId },
+    { homeTeamId, awayTeamId, autoAddedPlayers: players.length }
+  );
 
   revalidatePath("/admin/eliminazione");
   revalidatePath(`/admin/partite/${matchId}`);
@@ -98,11 +164,13 @@ export async function assignKnockoutTeams(_prev: ActionResult | undefined, formD
 
 export async function updateKnockoutRound(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const id = Number(formData.get("id"));
+  const id = parsePositiveId(formData.get("id"));
+  if (!id) return { message: "Turno non valido." };
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { message: "Nome obbligatorio." };
 
   const before = await db.knockoutRound.findUnique({ where: { id } });
+  if (!before) return { message: "Turno non trovato." };
   const round = await db.knockoutRound.update({ where: { id }, data: { name } });
   await logAdminAction(Number(admin.id), "UPDATE", "KnockoutRound", id, before, round);
 
@@ -115,10 +183,60 @@ export async function updateKnockoutRound(_prev: ActionResult | undefined, formD
 export async function deleteBracket(_prev: ActionResult | undefined, _formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
 
-  // Elimina solo i match TBD (homeTeamId = null) prima di eliminare i turni
-  await db.match.deleteMany({ where: { knockoutRoundId: { not: null }, homeTeamId: null } });
-  await db.knockoutRound.deleteMany({});
-  await logAdminAction(Number(admin.id), "DELETE_BRACKET", "KnockoutRound", 0, null, null);
+  const rounds = await db.knockoutRound.findMany({ orderBy: { order: "asc" } });
+  if (rounds.length === 0) return { message: "Nessun bracket da eliminare." };
+
+  const knockoutMatches = await db.match.findMany({
+    where: { knockoutRoundId: { not: null } },
+    select: {
+      id: true,
+      knockoutRoundId: true,
+      homeTeamId: true,
+      awayTeamId: true,
+      homeSeed: true,
+      awaySeed: true,
+      bracketPosition: true,
+      status: true,
+      startsAt: true,
+      _count: { select: { goals: true, bonuses: true, votes: true } },
+    },
+  });
+
+  const blocked = knockoutMatches.some(
+    (m) =>
+      m.homeTeamId !== null ||
+      m.awayTeamId !== null ||
+      m._count.goals > 0 ||
+      m._count.bonuses > 0 ||
+      m._count.votes > 0
+  );
+  if (blocked) {
+    return {
+      message:
+        "Impossibile eliminare il bracket: alcune partite hanno squadre assegnate, goal, bonus o voti. Elimina prima goal, bonus e voti, poi elimina quelle partite dalla sezione Partite.",
+    };
+  }
+
+  const matchIds = knockoutMatches.map((m) => m.id);
+  const roundIds = rounds.map((r) => r.id);
+  await db.$transaction([
+    db.match.deleteMany({ where: { id: { in: matchIds } } }),
+    db.knockoutRound.deleteMany({ where: { id: { in: roundIds } } }),
+  ]);
+  await logAdminAction(
+    Number(admin.id),
+    "DELETE_BRACKET",
+    "KnockoutRound",
+    0,
+    {
+      rounds,
+      matches: knockoutMatches.map(({ _count, startsAt, ...m }) => ({
+        ...m,
+        startsAt: startsAt.toISOString(),
+      })),
+    },
+    null
+  );
 
   revalidatePath("/admin/eliminazione");
   revalidatePath("/eliminazione");

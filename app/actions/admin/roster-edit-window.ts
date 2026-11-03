@@ -50,7 +50,8 @@ export async function setRosterEditWindow(_prev: ActionResult | undefined, formD
   // Snapshot dello stato pre-mercato: congela la fase corrente PRIMA che gli
   // utenti possano cambiare rosa.
   if (saveScoringSnapshot && phaseName) {
-    await closeScoringPhase(phaseName, Number(admin.id));
+    const result = await closeScoringPhase(phaseName, Number(admin.id));
+    if (!result.ok) return { errors: { phaseName: [result.error] } };
     revalidatePath("/classifica-fanta");
     revalidatePath("/dashboard");
     revalidatePath("/admin/fasi-punteggio");

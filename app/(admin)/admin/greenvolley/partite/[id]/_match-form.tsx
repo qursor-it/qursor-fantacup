@@ -6,6 +6,7 @@ import { Calendar } from "primereact/calendar";
 import { Dropdown } from "primereact/dropdown";
 import { InputNumber } from "primereact/inputnumber";
 import { updateVolleyMatch } from "@/app/actions/admin/volley";
+import { calendarToVolleyDateInput, storedVolleyDateToCalendar } from "@/lib/volley/format";
 
 type SelectItem = { id: number; name: string };
 
@@ -43,7 +44,7 @@ export default function EditVolleyMatchForm({
   const [awayDisciplinaryPoints, setAwayDisciplinaryPoints] = useState<number | null>(
     match.awayDisciplinaryPoints
   );
-  const [date, setDate] = useState<Date | null>(() => match.date ? new Date(match.date) : null);
+  const [date, setDate] = useState<Date | null>(() => storedVolleyDateToCalendar(match.date));
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export default function EditVolleyMatchForm({
           className="w-full"
           placeholder="Seleziona data e ora"
         />
-        <input type="hidden" name="date" value={date ? date.toISOString() : ""} />
+        <input type="hidden" name="date" value={calendarToVolleyDateInput(date)} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

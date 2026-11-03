@@ -7,7 +7,19 @@ export function sanitizeNextPath(next: FormDataEntryValue | null | undefined) {
     return "";
   }
 
-  return next.startsWith("/") && !next.startsWith("//") ? next : "";
+  // Solo percorsi interni. "/\evil.com" e simili vengono interpretati dai browser
+  // come URL protocol-relative: si normalizza con URL e si accetta solo la stessa origine.
+  if (!next.startsWith("/") || /[\\\u0000-\u001f]/.test(next)) {
+    return "";
+  }
+  try {
+    const base = "http://internal.invalid";
+    const url = new URL(next, base);
+    if (url.origin !== base) return "";
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return "";
+  }
 }
 
 export function resolvePostAuthRedirect({

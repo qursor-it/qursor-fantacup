@@ -222,7 +222,7 @@ export default async function AdminDashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{r.fantasyTeamName}</div>
-                  <div className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>{r.userName ?? r.userEmail}</div>
+                  <div className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>{r.userName ?? "—"}</div>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <span className="font-display font-black text-base" style={{ color: "var(--primary)" }}>{r.totalPoints}</span>
