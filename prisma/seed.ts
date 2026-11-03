@@ -166,18 +166,26 @@ const DEV_GROUPS: {
 // ─── Admin ────────────────────────────────────────────────────────────────
 async function seedAdmin() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@fantadc.local";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "changeme";
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
 
   const existing = await db.user.findUnique({ where: { email: adminEmail } });
-  if (!existing) {
-    const passwordHash = await bcrypt.hash(adminPassword, 12);
-    await db.user.create({
-      data: { email: adminEmail, passwordHash, name: "Admin", role: UserRole.ADMIN },
-    });
-    console.log(`✓ Admin creato: ${adminEmail}`);
-  } else {
+  if (existing) {
     console.log(`· Admin già presente: ${adminEmail}`);
+    return;
   }
+
+  if (!adminPassword) {
+    console.warn(
+      `⚠ SEED_ADMIN_PASSWORD non impostata: admin ${adminEmail} non creato.`
+    );
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  await db.user.create({
+    data: { email: adminEmail, passwordHash, name: "Admin", role: UserRole.ADMIN },
+  });
+  console.log(`✓ Admin creato: ${adminEmail}`);
 }
 
 // ─── Bonus types ──────────────────────────────────────────────────────────

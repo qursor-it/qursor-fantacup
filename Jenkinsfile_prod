@@ -22,6 +22,19 @@ pipeline {
             }
         }
 
+        stage('Static Checks') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v "$WORKSPACE":/app \
+                        -v /app/node_modules \
+                        -w /app \
+                        node:22.23.4-alpine \
+                        sh -c 'npm ci && npx prisma generate && npm run typecheck && npm run lint && npm test'
+                '''
+            }
+        }
+
         stage('Deploy Application') {
             steps {
                 withCredentials([
