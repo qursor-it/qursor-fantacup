@@ -1,44 +1,47 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { MatchStatus, type Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
+import { computeScoreFromGoals } from "@/lib/domain/goals";
 import type { ActionResult } from "./football-teams";
 import { revalidateDcupPublicPaths } from "./revalidate-public";
 
-async function syncMatchScore(matchId: number) {
-  const match = await db.match.findUnique({
+async function syncMatchScore(tx: Prisma.TransactionClient, matchId: number) {
+  const match = await tx.match.findUnique({
     where: { id: matchId },
-    select: { homeTeamId: true, awayTeamId: true },
+    select: { homeTeamId: true, awayTeamId: true, status: true },
   });
   if (!match) return;
 
-  const goals = await db.matchGoal.findMany({
+  const goals = await tx.matchGoal.findMany({
     where: { matchId },
     include: { scorer: { select: { footballTeamId: true } } },
   });
 
   if (goals.length === 0) {
-    await db.match.update({ where: { id: matchId }, data: { homeScore: null, awayScore: null } });
+    const matchStarted =
+      match.status === MatchStatus.LIVE || match.status === MatchStatus.CONCLUDED;
+    await tx.match.update({
+      where: { id: matchId },
+      data: matchStarted
+        ? { homeScore: 0, awayScore: 0 }
+        : { homeScore: null, awayScore: null },
+    });
     return;
   }
 
-  let homeScore = 0;
-  let awayScore = 0;
-  for (const g of goals) {
-    const scorerIsHome = g.scorer.footballTeamId === match.homeTeamId;
-    if (g.isOwnGoal) {
-      if (scorerIsHome) awayScore++;
-      else homeScore++;
-    } else {
-      if (scorerIsHome) homeScore++;
-      else awayScore++;
-    }
-  }
+  if (match.homeTeamId === null || match.awayTeamId === null) return;
 
-  await db.match.update({ where: { id: matchId }, data: { homeScore, awayScore } });
+  const { homeScore, awayScore } = computeScoreFromGoals(
+    goals,
+    match.homeTeamId,
+    match.awayTeamId
+  );
+  await tx.match.update({ where: { id: matchId }, data: { homeScore, awayScore } });
 }
 
 const AddGoalSchema = z.object({
@@ -58,9 +61,12 @@ export async function addGoal(_prev: ActionResult | undefined, formData: FormDat
 
   const match = await db.match.findUnique({
     where: { id: parsed.data.matchId },
-    select: { homeTeamId: true, awayTeamId: true },
+    select: { homeTeamId: true, awayTeamId: true, status: true },
   });
   if (!match) return { message: "Partita non trovata." };
+  if (match.status !== MatchStatus.LIVE && match.status !== MatchStatus.CONCLUDED) {
+    return { message: "Puoi registrare i gol solo per partite in corso o concluse." };
+  }
   if (match.homeTeamId === null || match.awayTeamId === null) {
     return { message: "Assegna entrambe le squadre prima di inserire i goal." };
   }
@@ -74,15 +80,18 @@ export async function addGoal(_prev: ActionResult | undefined, formData: FormDat
     return { message: "Il marcatore non appartiene a nessuna delle due squadre della partita." };
   }
 
-  const goal = await db.matchGoal.create({
-    data: {
-      matchId:   parsed.data.matchId,
-      scorerId:  parsed.data.scorerId,
-      isOwnGoal: parsed.data.isOwnGoal,
-    },
+  const goal = await db.$transaction(async (tx) => {
+    const created = await tx.matchGoal.create({
+      data: {
+        matchId:   parsed.data.matchId,
+        scorerId:  parsed.data.scorerId,
+        isOwnGoal: parsed.data.isOwnGoal,
+      },
+    });
+    await syncMatchScore(tx, parsed.data.matchId);
+    return created;
   });
   await logAdminAction(Number(admin.id), "ADD_GOAL", "MatchGoal", goal.id, null, goal);
-  await syncMatchScore(parsed.data.matchId);
 
   revalidatePath(`/admin/partite/${parsed.data.matchId}`);
   await revalidateDcupPublicPaths(parsed.data.matchId);
@@ -98,9 +107,11 @@ export async function deleteGoal(formData: FormData): Promise<ActionResult> {
   if (!before) return { message: "Goal non trovato." };
   const matchId = before.matchId;
 
-  await db.matchGoal.delete({ where: { id } });
+  await db.$transaction(async (tx) => {
+    await tx.matchGoal.delete({ where: { id } });
+    await syncMatchScore(tx, matchId);
+  });
   await logAdminAction(Number(admin.id), "DELETE_GOAL", "MatchGoal", id, before, null);
-  await syncMatchScore(matchId);
 
   revalidatePath(`/admin/partite/${matchId}`);
   await revalidateDcupPublicPaths(matchId);
