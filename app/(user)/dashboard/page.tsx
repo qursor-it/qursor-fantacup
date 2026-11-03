@@ -3,7 +3,8 @@ import { requireAuth } from "@/lib/session";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { AUTH_ONBOARDING_PATH } from "@/lib/post-auth";
-import { getTeamPhaseBreakdown, computeCumulativeRankings } from "@/lib/scoring";
+import { getTeamPhaseBreakdown } from "@/lib/scoring";
+import { getFantasyRankingSnapshotOrCompute } from "@/lib/fantasy-ranking-snapshot";
 import { getActiveEditWindow } from "@/lib/roster-edit-window";
 import { getPublicMvpData } from "@/lib/data/public/mvp";
 
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
 
   const [phaseBreakdown, rankings, mvpData] = await Promise.all([
     getTeamPhaseBreakdown(fantasyTeam.id),
-    computeCumulativeRankings(),
+    getFantasyRankingSnapshotOrCompute(),
     getPublicMvpData(),
   ]);
 

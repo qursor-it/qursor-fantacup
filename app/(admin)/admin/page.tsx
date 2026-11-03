@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getMatchClockNow, LIVE_MATCH_WINDOW_MS } from "@/lib/domain/match";
 import { computeStandings } from "@/lib/standings";
-import { computeCumulativeRankings } from "@/lib/scoring";
+import { getFantasyRankingSnapshotOrCompute } from "@/lib/fantasy-ranking-snapshot";
 import { requireAdmin } from "@/lib/session";
 
 type AdminDashboardMatch = {
@@ -73,7 +73,7 @@ export default async function AdminDashboardPage() {
     }),
     db.user.count({ where: { fantasyTeam: null } }),
     computeStandings(),
-    computeCumulativeRankings(),
+    getFantasyRankingSnapshotOrCompute(),
     db.group.findMany({
       orderBy: { order: "asc" },
       include: { teams: { select: { qualified: true } } },

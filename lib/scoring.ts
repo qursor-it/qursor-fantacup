@@ -140,6 +140,36 @@ export function teamPointsWithStartDate(
   return teamPointsFromPlayerTotals(team, totals);
 }
 
+type ScoringMatch = {
+  concludedAt: Date | null;
+  mvpOverridePlayerId?: number | null;
+  players?: Array<{ playerId: number }>;
+  bonuses: Array<{ playerId: number; points: number | string | { toString(): string } }>;
+  goals: Array<{ scorerId: number; isOwnGoal: boolean }>;
+  votes: Array<{ playerId: number }>;
+};
+
+/**
+ * Punti di ogni squadra sulle partite concluse date. Stessa catena di scoring
+ * usata dal calcolo per singola squadra (accumulatePlayerTotals + teamPointsWithStartDate).
+ */
+export function computeAllTeamPoints(
+  teams: Array<{ id: number; createdAt: Date; captainPlayerId: number; players: { playerId: number }[] }>,
+  matches: ScoringMatch[],
+  mvpBonus: number
+): Map<number, number> {
+  const matchContribs = matches.map((m) => ({
+    concludedAt: m.concludedAt,
+    points: accumulatePlayerTotals([m], mvpBonus),
+  }));
+
+  const result = new Map<number, number>();
+  for (const ft of teams) {
+    result.set(ft.id, teamPointsWithStartDate(ft, matchContribs));
+  }
+  return result;
+}
+
 /** Somma i punti delle fasi congelate (una riga per fase/squadra) con la fase in corso. */
 export function combinePhasePoints(
   frozen: Array<{ fantasyTeamId: number; points: number }>,
@@ -170,6 +200,7 @@ export function combinePhasePoints(
 export async function computeFantasyTeamPoints(opts?: {
   from?: Date | null;
   to?: Date | null;
+  fantasyTeamId?: number;
 }): Promise<Map<number, number>> {
   return measureServerTiming("scoring.computeFantasyTeamPoints", async () => {
     const concludedAt: { gte?: Date; lt?: Date } = {};
@@ -192,22 +223,13 @@ export async function computeFantasyTeamPoints(opts?: {
         },
       }),
       db.fantasyTeam.findMany({
+        where: opts?.fantasyTeamId ? { id: opts.fantasyTeamId } : undefined,
         select: { id: true, createdAt: true, captainPlayerId: true, players: { select: { playerId: true } } },
       }),
       getMvpBonus(),
     ]);
 
-    // Build per-match contribution maps so each team can filter by its own createdAt
-    const matchContribs = matches.map((m) => ({
-      concludedAt: m.concludedAt,
-      points: accumulatePlayerTotals([m], mvpBonus),
-    }));
-
-    const result = new Map<number, number>();
-    for (const ft of fantasyTeams) {
-      result.set(ft.id, teamPointsWithStartDate(ft, matchContribs));
-    }
-    return result;
+    return computeAllTeamPoints(fantasyTeams, matches, mvpBonus);
   });
 }
 
@@ -340,7 +362,7 @@ export async function getTeamPhaseBreakdown(fantasyTeamId: number): Promise<Phas
     current: false,
   }));
 
-  const current = await computeFantasyTeamPoints({ from: lastClosedAt });
+  const current = await computeFantasyTeamPoints({ from: lastClosedAt, fantasyTeamId });
   result.push({
     phaseId: null,
     name: "Fase in corso",

@@ -4,6 +4,7 @@ import {
   accumulatePlayerTotals,
   buildPhaseRosterWindows,
   combinePhasePoints,
+  computeAllTeamPoints,
   computeMvpWinnerId,
   findRosterWindow,
   rankFromPoints,
@@ -387,6 +388,61 @@ describe("teamPointsWithStartDate", () => {
     // only 'after' counts: p1=3
     // rosterTotal(3+0+0)=3; captainExtra(3)=3 → total 6
     expect(teamPointsWithStartDate(makeTeam(createdAt), [before, after])).toBe(6);
+  });
+});
+
+describe("computeAllTeamPoints", () => {
+  const early = new Date("2026-01-10T00:00:00Z");
+  const late = new Date("2026-01-25T00:00:00Z");
+  const matches = [
+    {
+      concludedAt: early,
+      bonuses: [
+        { playerId: 1, points: 5 },
+        { playerId: 3, points: 2 },
+      ],
+      goals: [],
+      votes: [],
+    },
+    {
+      concludedAt: late,
+      bonuses: [
+        { playerId: 1, points: 1 },
+        { playerId: 2, points: 4 },
+        { playerId: 3, points: 6 },
+        { playerId: 4, points: 2 },
+      ],
+      goals: [],
+      votes: [],
+    },
+  ];
+  const teamA = {
+    id: 1,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    captainPlayerId: 1,
+    players: [{ playerId: 1 }, { playerId: 2 }],
+  };
+  const teamB = {
+    id: 2,
+    createdAt: new Date("2026-01-20T00:00:00Z"),
+    captainPlayerId: 3,
+    players: [{ playerId: 3 }, { playerId: 4 }],
+  };
+
+  it("scores each team only from matches concluded after its createdAt", () => {
+    const points = computeAllTeamPoints([teamA, teamB], matches, 3);
+    // teamA: p1=6, p2=4 → 10 + captain 6 = 16
+    expect(points.get(1)).toBe(16);
+    // teamB: solo la partita di gennaio (early esclusa); p3=6, p4=2 → 8 + captain 6 = 14
+    expect(points.get(2)).toBe(14);
+  });
+
+  it("il risultato per una singola squadra coincide con la sua voce nel calcolo completo", () => {
+    const full = computeAllTeamPoints([teamA, teamB], matches, 3);
+    for (const team of [teamA, teamB]) {
+      const scoped = computeAllTeamPoints([team], matches, 3);
+      expect(scoped.get(team.id)).toBe(full.get(team.id));
+    }
   });
 });
 
