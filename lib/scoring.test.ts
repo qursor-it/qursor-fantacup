@@ -5,7 +5,7 @@ import {
   buildPhaseRosterWindows,
   combinePhasePoints,
   computeAllTeamPoints,
-  computeMvpWinnerId,
+  computeFrozenPhaseAdjustment,
   findRosterWindow,
   rankFromPoints,
   teamPointsFromPlayerTotals,
@@ -13,31 +13,18 @@ import {
   type FantasyTeamMeta,
 } from "./scoring";
 
-describe("computeMvpWinnerId", () => {
-  it("returns null when there are no votes", () => {
-    expect(computeMvpWinnerId([])).toBeNull();
+describe("computeFrozenPhaseAdjustment", () => {
+  it("returns 0 when live rows already match the frozen total", () => {
+    expect(computeFrozenPhaseAdjustment(10, 10)).toBe(0);
   });
 
-  it("returns the most voted player id", () => {
-    expect(
-      computeMvpWinnerId([
-        { playerId: 4 },
-        { playerId: 2 },
-        { playerId: 4 },
-        { playerId: 1 },
-      ])
-    ).toBe(4);
+  it("returns the negative difference after an admin bonus correction (+2 live)", () => {
+    // Snapshot congelato 10, ricalcolo live 12 → rettifica -2.
+    expect(computeFrozenPhaseAdjustment(10, 12)).toBe(-2);
   });
 
-  it("returns null when top votes are tied", () => {
-    expect(
-      computeMvpWinnerId([
-        { playerId: 8 },
-        { playerId: 3 },
-        { playerId: 8 },
-        { playerId: 3 },
-      ])
-    ).toBeNull();
+  it("rounds the difference to 2 decimals", () => {
+    expect(computeFrozenPhaseAdjustment(10, 9.999)).toBe(0);
   });
 });
 

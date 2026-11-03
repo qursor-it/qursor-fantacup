@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { computeTeamHistory, getTeamPhaseBreakdown } from "@/lib/scoring";
+import { computeTeamHistory, getTeamPhaseBreakdown, roundPoints } from "@/lib/scoring";
 import { resolveTeamFlag } from "@/lib/flags";
 import { checkRateLimit, getClientIp, storyImageLimiter } from "@/lib/rate-limit";
 import { readFile } from "fs/promises";
@@ -152,6 +152,16 @@ export async function GET(
         )
       )
     );
+
+    // Le righe mostrano solo la rosa attuale: il residuo (giocatori pre-mercato)
+    // allinea la loro somma al TOTALE cumulativo.
+    const displayedTotal = roundPoints(
+      sortedPlayers.reduce(
+        (sum, { player }) => sum + (playerTotals.get(player.id) ?? 0),
+        0
+      )
+    );
+    const residualPoints = roundPoints(totalPoints - displayedTotal);
 
     // Mai esporre l'email (nemmeno la parte locale) in un'immagine pubblica.
     const ownerName = fitStoryText(team.user.name?.trim() || "Utente", 28);
@@ -322,7 +332,7 @@ export async function GET(
               top: 480,
               display: "flex",
               flexDirection: "column",
-              gap: 51,
+              gap: residualPoints !== 0 ? 32 : 51,
             }}
           >
             {sortedPlayers.map(({ player }) => {
@@ -441,6 +451,62 @@ export async function GET(
                 </div>
               );
             })}
+
+            {residualPoints !== 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  height: 154,
+                  width: "100%",
+                  borderRadius: 30,
+                  padding: "0 52px",
+                  backgroundColor: "rgba(255,255,255,0.06)",
+                  border: "2px solid rgba(255,255,255,0.12)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 34,
+                      fontWeight: 800,
+                      color: "rgba(255,255,255,0.85)",
+                      lineHeight: 1.1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Altri (pre-mercato)
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    width: 166,
+                    height: 82,
+                    borderRadius: 26,
+                    backgroundColor: "#F4F6FF",
+                    color: "#000546",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 54,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  {formatPoints(residualPoints, { signed: true })}
+                </div>
+              </div>
+            )}
           </div>
 
           <div

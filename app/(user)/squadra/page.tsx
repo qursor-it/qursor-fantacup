@@ -5,7 +5,7 @@ import SquadraMenu from "@/components/squadra-menu";
 import PlayerStatsTrigger from "@/components/player-stats-trigger";
 import { requireAuth } from "@/lib/session";
 import { db } from "@/lib/db";
-import { computeTeamHistory, getLastClosedAt, getTeamPhaseBreakdown } from "@/lib/scoring";
+import { computeFrozenPhaseAdjustment, computeTeamHistory, getLastClosedAt, getTeamPhaseBreakdown } from "@/lib/scoring";
 import { getPublicMatchesPageData } from "@/lib/data/public/matches";
 import { AUTH_ONBOARDING_PATH } from "@/lib/post-auth";
 import { resolveTeamFlag, resolveTeamKit } from "@/lib/flags";
@@ -110,6 +110,13 @@ export default async function SquadraPage({
   const bottomRow = outfield.slice(2);
   const showPoints = history.length > 0;
   const totalPoints = phaseBreakdown.reduce((s, p) => s + p.points, 0);
+  const phaseAdjustment =
+    selectedPhaseId !== null
+      ? computeFrozenPhaseAdjustment(
+          phaseBreakdown.find((p) => p.phaseId === selectedPhaseId)?.points ?? 0,
+          [...phasePlayerTotals.values()].reduce((sum, pts) => sum + pts, 0)
+        )
+      : 0;
 
   return (
     <div className="flex flex-col flex-1">
@@ -220,6 +227,19 @@ export default async function SquadraPage({
                 points={showPoints ? (phasePlayerTotals.get(gk.player.id) ?? 0) : null}
               />
             </PlayerStatsTrigger>
+          </div>
+        )}
+
+        {/* Rettifica fase congelata: allinea le righe al totale dello snapshot */}
+        {phaseAdjustment !== 0 && (
+          <div
+            className="relative z-10 flex items-center justify-center gap-2 px-3 py-1 rounded-lg"
+            style={{ background: "rgba(255,255,255,0.92)", color: "#09144C" }}
+          >
+            <span className="text-[11px] font-medium">Rettifica storico congelato</span>
+            <span className="text-[11px] font-semibold tabular-nums">
+              {phaseAdjustment.toFixed(1)} pti
+            </span>
           </div>
         )}
 

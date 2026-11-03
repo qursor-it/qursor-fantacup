@@ -73,6 +73,7 @@
 * la classifica principale e cumulata totale
 * a parita di punti le squadre hanno la stessa posizione (1, 1, 3); l'ordine di visualizzazione tra pari e alfabetico
 * il punteggio fanta e articolato in **fasi** (es. gironi, eliminazione, semifinali, finali): alla chiusura di una fase i punti fatti da ogni squadra fino a quel momento (con la rosa di allora) vengono **congelati** in uno snapshot e non cambiano piu, anche se in seguito cambiano le rose o si correggono bonus passati
+* per una fase chiusa il totale congelato resta autoritativo: se il ricalcolo live delle righe differisce (es. dopo una correzione admin), lo storico mostra una riga di rettifica ("Rettifica storico congelato") con la differenza, cosi le righe sommano al totale congelato
 * la classifica generale = somma delle fasi congelate + fase in corso; esistono anche viste per singola fase
 * le fasi le chiude l'admin: spuntando "salva storico" all'apertura del mercato, oppure con un pulsante dedicato "Chiudi fase ora"
 * una fase non si puo chiudere finche c'e una partita (nell'intervallo della fase) con MVP non definitivo (voto ancora aperto o pareggio senza scelta admin): altrimenti il bonus MVP andrebbe perso

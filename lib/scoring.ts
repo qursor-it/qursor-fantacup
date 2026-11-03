@@ -47,21 +47,12 @@ export function roundPoints(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-export function computeMvpWinnerId(votes: Array<{ playerId: number }>): number | null {
-  if (!votes.length) return null;
-
-  const counts = new Map<number, number>();
-  for (const vote of votes) {
-    counts.set(vote.playerId, (counts.get(vote.playerId) ?? 0) + 1);
-  }
-
-  const sortedEntries = [...counts.entries()].sort(
-    (a, b) => b[1] - a[1] || a[0] - b[0]
-  );
-  const topEntry = sortedEntries[0];
-  const tied = sortedEntries[1] && sortedEntries[1][1] === topEntry[1];
-
-  return tied ? null : topEntry[0];
+/**
+ * Differenza tra il totale congelato di una fase chiusa e la somma ricalcolata
+ * live delle righe (bonus/voti corretti dopo lo snapshot). 0 = nessuna rettifica.
+ */
+export function computeFrozenPhaseAdjustment(frozenTotal: number, liveTotal: number): number {
+  return roundPoints(frozenTotal - liveTotal);
 }
 
 export function accumulatePlayerTotals(
@@ -273,14 +264,6 @@ export function rankFromPoints(teams: FantasyTeamMeta[], points: Map<number, num
     previousPoints = e.totalPoints;
     previousRank = rank;
     return { ...e, rank };
-  });
-}
-
-/** Compute total ranking across all CONCLUDED matches (rosa attuale, tutte le partite). */
-export async function computeRankings(): Promise<RankEntry[]> {
-  return measureServerTiming("scoring.computeRankings", async () => {
-    const [teams, points] = await Promise.all([getFantasyTeamMeta(), computeFantasyTeamPoints()]);
-    return rankFromPoints(teams, points);
   });
 }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicFantasyTeamDetail } from "@/lib/data/public/fantasy-rankings";
 import { getPublicMatchesPageData } from "@/lib/data/public/matches";
+import { computeFrozenPhaseAdjustment } from "@/lib/scoring";
 import { db } from "@/lib/db";
 import BackButton from "@/components/back-button";
 import SquadraMenu from "@/components/squadra-menu";
@@ -89,6 +90,13 @@ export default async function SquadraFantasyPublicPage({
   const topRow = outfield.slice(0, 2);
   const bottomRow = outfield.slice(2);
   const showPoints = history.length > 0;
+  const phaseAdjustment =
+    selectedPhaseId !== null
+      ? computeFrozenPhaseAdjustment(
+          phaseBreakdown.find((p) => p.phaseId === selectedPhaseId)?.points ?? 0,
+          [...phasePlayerTotals.values()].reduce((sum, pts) => sum + pts, 0)
+        )
+      : 0;
 
   return (
     <div className="flex flex-col flex-1">
@@ -192,6 +200,18 @@ export default async function SquadraFantasyPublicPage({
                 points={showPoints ? (phasePlayerTotals.get(gk.player.id) ?? 0) : null}
               />
             </PlayerStatsTrigger>
+          </div>
+        )}
+        {/* Rettifica fase congelata: allinea le righe al totale dello snapshot */}
+        {phaseAdjustment !== 0 && (
+          <div
+            className="relative z-10 flex items-center justify-center gap-2 px-3 py-1 rounded-lg"
+            style={{ background: "rgba(255,255,255,0.92)", color: "#09144C" }}
+          >
+            <span className="text-[11px] font-medium">Rettifica storico congelato</span>
+            <span className="text-[11px] font-semibold tabular-nums">
+              {phaseAdjustment.toFixed(1)} pti
+            </span>
           </div>
         )}
       </div>
