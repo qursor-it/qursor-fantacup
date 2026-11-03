@@ -39,17 +39,27 @@ Alternative scartate:
 - `lib/site.ts` espone `siteConfig` e `appStoreConfig`, ricavati dalla configurazione. Nelle pagine non vanno scritti a mano nome, logo o regole del torneo.
 - Bonus e malus sono già nel database (`BonusType`), quindi ogni torneo ha i suoi senza bisogno di configurazione.
 
-### Differenze di interfaccia: tre livelli
+### Differenze di interfaccia
 
-Per ogni differenza si sceglie il livello più basso che basta:
+Come fare pagine esclusive, versioni di pagina per torneo e ritocchi grafici è spiegato in `tournament_ui.md`. In sintesi:
+- **Pagina presente in un solo torneo:** un flag in `features`, controllato con `notFound()` nella pagina oppure in `proxy.ts` per un'intera sezione.
+- **Stessa pagina, versione diversa:** la pagina in `app/` sceglie il componente di `tournaments/<id>/pages/`, oppure quello comune.
+- **Solo ritocchi grafici:** variabili CSS dalla configurazione e `data-tournament` sull'`<html>`.
 
-| Differenza | Come si gestisce |
-|---|---|
-| Stessa pagina, piccole differenze (testi, colori, una sezione in più o in meno) | Valori e flag nella configurazione del torneo |
-| Stessa pagina, aspetto diverso | Un componente per torneo. La pagina condivisa importa `@tournament/<Componente>` e la build collega l'import alla cartella del torneo (`turbopack.resolveAlias`) |
-| Sezione presente in un solo torneo (es. green volley) | Le pagine restano nel codice. `proxy.ts` risponde 404 se la sezione non è attiva, e il menu si costruisce dalla configurazione |
+Si parte con tutto in comune e si separa solo quando una differenza reale lo richiede. Se quasi tutte le pagine divergessero, conviene rivalutare l'opzione del motore condiviso.
 
-Si parte con tutto in comune e si separa solo quando una differenza reale lo richiede. Il secondo livello (alias `@tournament`) non è ancora costruito: va aggiunto con la prima pagina che deve essere diversa. Se quasi tutte le pagine divergessero, conviene rivalutare l'opzione del motore condiviso.
+### Aggiungere un nuovo torneo
+
+1. Crea `tournaments/<id>/config.ts` con identità, regole e `features`, e aggiungilo all'elenco in `tournaments/index.ts`.
+2. Metti logo, icone e immagini in `tournaments/<id>/public/`, con gli stessi nomi di file del DCup dove si sostituiscono.
+3. Aggiungi le eventuali versioni di pagina in `tournaments/<id>/pages/` (vedi `tournament_ui.md`).
+4. Prepara il deploy con `NEXT_PUBLIC_TOURNAMENT=<id>`, che comprende:
+   - un database proprio;
+   - le credenziali Jenkins proprie (file env, admin, chiavi VAPID per le notifiche push);
+   - un dominio proprio.
+5. Dopo il primo deploy, genera l'app con PWABuilder dal dominio del torneo e aggiorna `tournaments/<id>/public/.well-known/assetlinks.json` con il package e la fingerprint della nuova chiave.
+6. Crea in admin i bonus e i malus (`BonusType`) del torneo.
+7. Controlla i comandi di verifica in `tournament_ui.md`, eseguendo la build per ogni torneo.
 
 ### App negli store (PWABuilder)
 
@@ -64,9 +74,12 @@ La chiave di firma Android generata da PWABuilder va conservata: senza, l'app no
 
 1. **Fatto (`35d5803`):** configurazione per torneo, con identità e regole spostate in `tournaments/dcup.ts`. Il comportamento del DCup è invariato.
 2. **Da fare:** colori del marchio (3–4) in variabili CSS lette dalla configurazione. Gli altri colori scritti a mano restano.
-3. **Da fare:** struttura degli asset per torneo:
+3. **Da fare:** struttura per torneo:
+   - `id` e `features` in `TournamentConfig`;
+   - `tournaments/dcup.ts` spostato in `tournaments/dcup/config.ts`;
    - loghi, icone e `assetlinks.json` in `tournaments/<id>/public`, copiati in `public/` durante la build Docker;
-   - flag delle sezioni (green volley) in `proxy.ts` e nel menu.
+   - `data-tournament` sull'`<html>`;
+   - flag delle sezioni (green volley) in `proxy.ts` e nei menu.
 4. **Da fare:** Docker Compose e Jenkins parametrici per torneo:
    - nomi dei container, porte e volumi con un prefisso per torneo (oggi sono fissi: `fantadc-prod`, `fantadc-postgres-prod`);
    - un job Jenkins per torneo, con `TOURNAMENT` e credenziali proprie (file env, admin, chiavi VAPID).
