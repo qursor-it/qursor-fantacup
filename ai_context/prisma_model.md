@@ -10,6 +10,7 @@ model User {
   id                Int                @id @default(autoincrement())
   email             String             @unique
   passwordHash      String
+  provisionedPasswordHash String?
   name              String?
   role              UserRole           @default(USER)
   isSuspended       Boolean            @default(false)

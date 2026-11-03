@@ -95,7 +95,15 @@ L'admin non viene più creato dai seed applicativi: viene sincronizzato da `npm 
 * DEV: credential Jenkins `fantadc-admin-dev`, env `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 * PROD: credential Jenkins `fantadc-admin-prod`, env `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 
-Jenkins è la fonte di verità della password. Lo script crea l'utente se manca, ne garantisce il ruolo `ADMIN` e, se `bcrypt.compare` fallisce, aggiorna `passwordHash` e `passwordChangedAt` (il callback JWT in `lib/auth.ts` invalida le sessioni emesse prima di quella data). Se la password combacia non tocca nulla, quindi le sessioni sopravvivono ai deploy normali. Una password cambiata dall'admin via UI viene sovrascritta al deploy successivo se differisce dalla credential.
+Jenkins è la fonte di verità della sola password provisionata. Il campo `User.provisionedPasswordHash` contiene l'hash dell'ultima `ADMIN_PASSWORD` applicata dal deploy; un valore non-null marca l'unico account gestito da Jenkins. Lo script:
+
+* al primo deploy **adotta** l'utente con `ADMIN_EMAIL` se esiste (ruolo `ADMIN`, `passwordHash` e `provisionedPasswordHash` allineati alla credential): `passwordChangedAt` viene aggiornato solo se la password effettiva cambia, così le sessioni sopravvivono quando la password era già la stessa;
+* se l'account gestito non esiste ancora, lo **crea** (`name: "Admin"`);
+* a ogni deploy garantisce il ruolo `ADMIN` e ruota la password solo quando la credential Jenkins è cambiata (`bcrypt.compare` contro `provisionedPasswordHash`, non contro `passwordHash`); una password cambiata dall'admin via UI viene quindi **preservata**;
+* se `ADMIN_EMAIL` cambia, **rinomina** lo stesso account gestito (storia preservata); se l'email è già di un altro utente lo script esce con un errore invece di unire gli account;
+* se più di un utente ha `provisionedPasswordHash` non-null esce con un errore che elenca gli id, da sistemare manualmente.
+
+Quando la password viene ruotata o adottata con valore diverso, `passwordChangedAt` viene aggiornato e il callback JWT in `lib/auth.ts` invalida le sessioni emesse prima di quella data.
 
 ## Rate limiting e proxy
 

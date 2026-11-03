@@ -26,25 +26,73 @@ async function main() {
     );
   }
 
-  const existing = await db.user.findUnique({
-    where: { email },
-    select: { role: true, passwordHash: true },
-  });
+  const [managedUsers, existing] = await Promise.all([
+    db.user.findMany({
+      where: { provisionedPasswordHash: { not: null } },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        passwordHash: true,
+        provisionedPasswordHash: true,
+      },
+    }),
+    db.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, role: true, passwordHash: true },
+    }),
+  ]);
 
+  const managed = managedUsers[0] ?? null;
+
+  const credentialMatchesProvisioned = managed?.provisionedPasswordHash
+    ? await bcrypt.compare(password, managed.provisionedPasswordHash)
+    : false;
   const passwordMatches = existing
     ? await bcrypt.compare(password, existing.passwordHash)
     : false;
 
-  const actions = decideAdminSync({
-    exists: !!existing,
-    role: existing?.role ?? "",
-    passwordMatches,
+  const decision = decideAdminSync({
+    managedCount: managedUsers.length,
+    managed: managed
+      ? {
+          emailMatches: managed.email === email,
+          roleIsAdmin: managed.role === UserRole.ADMIN,
+          credentialMatchesProvisioned,
+        }
+      : null,
+    existingWithEnvEmail: {
+      exists: !!existing,
+      isManaged: !!existing && managed?.id === existing.id,
+      passwordMatches,
+    },
   });
+
+  if (!decision.ok) {
+    if (decision.error === "multiple-managed") {
+      throw new Error(
+        `Trovati più account gestiti dal deploy (provisionedPasswordHash non null): ${managedUsers
+          .map((u) => u.id)
+          .join(", ")}. Sistemare manualmente prima di riprovare.`
+      );
+    }
+    throw new Error(
+      `ADMIN_EMAIL ${email} è già usato da un altro account: nessun merge automatico, intervento manuale richiesto.`
+    );
+  }
+
+  const actions = decision.actions;
 
   if (actions.includes("create")) {
     const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
     await db.user.create({
-      data: { email, passwordHash, name: "Admin", role: UserRole.ADMIN },
+      data: {
+        email,
+        passwordHash,
+        provisionedPasswordHash: passwordHash,
+        name: "Admin",
+        role: UserRole.ADMIN,
+      },
     });
     console.log(`✓ Admin creato: ${email}`);
     return;
@@ -55,23 +103,57 @@ async function main() {
     return;
   }
 
+  if (actions.includes("adopt")) {
+    const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: existing!.id },
+        data: {
+          role: UserRole.ADMIN,
+          passwordHash,
+          provisionedPasswordHash: passwordHash,
+          ...(actions.includes("adopt-set-password-changed-at")
+            ? { passwordChangedAt: new Date() }
+            : {}),
+        },
+      });
+    });
+    console.log(`✓ Admin adottato: ${email}`);
+    if (actions.includes("adopt-set-password-changed-at")) {
+      console.log(`✓ Sessione admin invalidata (password cambiata): ${email}`);
+    }
+    return;
+  }
+
   const data: {
+    email?: string;
     role?: UserRole;
     passwordHash?: string;
+    provisionedPasswordHash?: string;
     passwordChangedAt?: Date;
   } = {};
 
+  if (actions.includes("rename-email")) data.email = email;
   if (actions.includes("promote")) data.role = UserRole.ADMIN;
-  if (actions.includes("update-password")) {
-    data.passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+  if (actions.includes("rotate-password")) {
+    const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+    data.passwordHash = passwordHash;
+    data.provisionedPasswordHash = passwordHash;
     data.passwordChangedAt = new Date();
   }
 
-  await db.user.update({ where: { email }, data });
+  await db.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: managed!.id }, data });
+  });
 
-  if (actions.includes("promote")) console.log(`✓ Admin promosso: ${email}`);
-  if (actions.includes("update-password")) {
-    console.log(`✓ Password admin aggiornata: ${email}`);
+  if (actions.includes("rename-email")) {
+    console.log(`✓ Email admin aggiornata: ${managed!.email} -> ${email}`);
+  }
+  if (actions.includes("promote")) {
+    console.log(`✓ Ruolo ADMIN garantito: ${email}`);
+  }
+  if (actions.includes("rotate-password")) {
+    console.log(`✓ Password admin ruotata: ${email}`);
   }
 }
 

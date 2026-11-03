@@ -10,7 +10,7 @@ export default async function UtentiPage() {
   const users = await db.user.findMany({
     orderBy: [{ role: "asc" }, { createdAt: "asc" }],
     include: { fantasyTeam: { select: { id: true, name: true } } },
-    omit: { passwordHash: true },
+    omit: { passwordHash: true, provisionedPasswordHash: true },
   });
 
   const admins = users.filter((u) => u.role === "ADMIN");

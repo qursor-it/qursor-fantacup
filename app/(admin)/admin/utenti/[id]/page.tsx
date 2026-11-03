@@ -54,7 +54,7 @@ export default async function UtenteDetailPage({ params }: { params: Promise<{ i
       },
       _count: { select: { votes: true } },
     },
-    omit: { passwordHash: true },
+    omit: { passwordHash: true, provisionedPasswordHash: true },
   });
   if (!user) notFound();
 
