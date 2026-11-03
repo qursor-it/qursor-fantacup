@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPublicFantasyRankingPageData } from "@/lib/data/public/fantasy-rankings";
+import { getPublicFantasyRankingPageData, getPublicFantasyRankingPhases } from "@/lib/data/public/fantasy-rankings";
 import ClassificaTable from "@/app/(public)/classifica/_table";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +11,11 @@ export default async function ClassificaFantaPage({
   searchParams: Promise<{ fase?: string }>;
 }) {
   const { fase } = await searchParams;
-  const selected: string = fase ?? "generale";
-  const { phases, rankings } = await getPublicFantasyRankingPageData(selected);
+  const phases = await getPublicFantasyRankingPhases();
+  const raw = fase ?? "generale";
+  const selected =
+    raw === "corrente" || phases.some((p) => String(p.id) === raw) ? raw : "generale";
+  const { rankings } = await getPublicFantasyRankingPageData(selected);
 
   const tabs: { key: string; label: string; href: string }[] = [
     { key: "generale", label: "Generale", href: "/classifica-fanta" },

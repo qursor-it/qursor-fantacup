@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicFantasyTeamDetail } from "@/lib/data/public/fantasy-rankings";
-import { getTeamPhaseBreakdown } from "@/lib/scoring";
 import { getPublicMatchesPageData } from "@/lib/data/public/matches";
 import { db } from "@/lib/db";
 import BackButton from "@/components/back-button";
@@ -25,10 +24,9 @@ export default async function SquadraFantasyPublicPage({
   const detail = await getPublicFantasyTeamDetail(teamId);
   if (!detail) notFound();
 
-  const { team, history, lastClosedAt, totalPoints } = detail;
+  const { team, history, phaseBreakdown, lastClosedAt, totalPoints } = detail;
 
-  const [phaseBreakdown, dbPhases, { matches }] = await Promise.all([
-    getTeamPhaseBreakdown(teamId),
+  const [dbPhases, { matches }] = await Promise.all([
     db.scoringPhase.findMany({
       orderBy: { order: "asc" },
       select: {

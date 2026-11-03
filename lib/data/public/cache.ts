@@ -3,7 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { measureServerTiming } from "@/lib/perf";
 
-type AsyncDataLoader = (...args: any[]) => Promise<any>;
+type AsyncDataLoader = Parameters<typeof unstable_cache>[0];
 
 type PublicCacheOptions<T extends AsyncDataLoader> = {
   tags: string[];
@@ -27,6 +27,7 @@ export const PUBLIC_CACHE_TAGS = {
   fantasy: "public:fantasy",
   fantasyPicks: "public:fantasy:picks",
   fantasyRankings: "public:fantasy:rankings",
+  mvp: "public:mvp",
   volley: "public:volley",
   volleyMatches: "public:volley:matches",
   volleyStandings: "public:volley:standings",

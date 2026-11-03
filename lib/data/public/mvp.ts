@@ -4,6 +4,12 @@ import { MatchStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { mvpPointsFromBonusType, resolveMvp } from "@/lib/domain/mvp";
 import { resolveTeamFlag } from "@/lib/flags";
+import {
+  cachePublicData,
+  PUBLIC_CACHE_TAGS,
+  PUBLIC_CACHE_TTL_SECONDS,
+  revivePublicDates,
+} from "./cache";
 
 export type MvpPhase = {
   id: number | null; // null = fase in corso
@@ -43,7 +49,9 @@ export type PublicMvpData = {
   byPlayer: MvpPlayerRow[];
 };
 
-export async function getPublicMvpData(): Promise<PublicMvpData> {
+export const getPublicMvpData = cachePublicData(
+  "data.public.mvp.page.fetch",
+  async (): Promise<PublicMvpData> => {
   const [matches, closedPhases] = await Promise.all([
     db.match.findMany({
       where: { status: MatchStatus.CONCLUDED, concludedAt: { not: null } },
@@ -163,7 +171,14 @@ export async function getPublicMvpData(): Promise<PublicMvpData> {
   );
 
   return { phases, byMatch, byPlayer };
-}
+  },
+  ["data.public.mvp.page"],
+  {
+    tags: [PUBLIC_CACHE_TAGS.mvp],
+    revalidate: PUBLIC_CACHE_TTL_SECONDS.live,
+    hydrate: revivePublicDates,
+  }
+);
 
 export type MvpPlayerVote = {
   playerId: number;
@@ -198,7 +213,9 @@ export type MvpMatchDetail = {
   playerVotes: MvpPlayerVote[];
 };
 
-export async function getMvpMatchDetail(matchId: number): Promise<MvpMatchDetail | null> {
+export const getMvpMatchDetail = cachePublicData(
+  "data.public.mvp.match-detail.fetch",
+  async (matchId: number): Promise<MvpMatchDetail | null> => {
   const [match, mvpBonusType] = await Promise.all([
     db.match.findUnique({
       where: { id: matchId, status: MatchStatus.CONCLUDED },
@@ -348,4 +365,10 @@ export async function getMvpMatchDetail(matchId: number): Promise<MvpMatchDetail
     awayGoals,
     playerVotes,
   };
-}
+  },
+  ["data.public.mvp.match-detail"],
+  {
+    tags: [PUBLIC_CACHE_TAGS.mvp],
+    revalidate: PUBLIC_CACHE_TTL_SECONDS.live,
+  }
+);

@@ -14,6 +14,7 @@ const DCUP_PUBLIC_PATHS = [
   "/classifica-fanta",
   "/giocatori-fanta",
   "/squadre-fanta",
+  "/mvp",
 ];
 
 const VOLLEY_PUBLIC_PATHS = [
@@ -37,7 +38,10 @@ function updatePublicCacheTags(tags: string[]) {
 
 export async function revalidateDcupPublicPaths(matchId?: number) {
   for (const path of DCUP_PUBLIC_PATHS) revalidatePath(path);
-  if (matchId) revalidatePath(`/partite/${matchId}`);
+  if (matchId) {
+    revalidatePath(`/partite/${matchId}`);
+    revalidatePath(`/mvp/${matchId}`);
+  }
   updatePublicCacheTags([
     PUBLIC_CACHE_TAGS.dcup,
     PUBLIC_CACHE_TAGS.dcupMatches,
@@ -47,6 +51,7 @@ export async function revalidateDcupPublicPaths(matchId?: number) {
     PUBLIC_CACHE_TAGS.dcupTeams,
     PUBLIC_CACHE_TAGS.fantasy,
     PUBLIC_CACHE_TAGS.fantasyRankings,
+    PUBLIC_CACHE_TAGS.mvp,
   ]);
   await invalidateFantasyRankingSnapshot();
 }

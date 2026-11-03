@@ -43,9 +43,24 @@ export type PublicFantasyTeamDetail = {
     }>;
   };
   history: Awaited<ReturnType<typeof computeTeamHistory>>;
+  phaseBreakdown: Awaited<ReturnType<typeof getTeamPhaseBreakdown>>;
   totalPoints: number;
   lastClosedAt: Date | null;
 };
+
+export const getPublicFantasyRankingPhases = cachePublicData(
+  "data.public.fantasy-rankings.phases.fetch",
+  async (): Promise<PublicFantasyRankingPhase[]> =>
+    db.scoringPhase.findMany({
+      orderBy: { order: "asc" },
+      select: { id: true, name: true },
+    }),
+  ["data.public.fantasy-rankings.phases"],
+  {
+    tags: [PUBLIC_CACHE_TAGS.fantasy, PUBLIC_CACHE_TAGS.fantasyRankings],
+    revalidate: PUBLIC_CACHE_TTL_SECONDS.live,
+  }
+);
 
 export const getPublicFantasyRankingPageData = cachePublicData(
   "data.public.fantasy-rankings.page.fetch",
@@ -126,6 +141,7 @@ export const getPublicFantasyTeamDetail = cachePublicData(
         players: team.players,
       },
       history,
+      phaseBreakdown,
       totalPoints,
       lastClosedAt,
     };
