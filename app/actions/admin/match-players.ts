@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
+import { syncMatchPlayers } from "@/lib/match-players-sync";
 import type { ActionResult } from "./football-teams";
 import { revalidateDcupPublicPaths } from "./revalidate-public";
 
@@ -54,25 +55,11 @@ export async function addAllMatchPlayers(formData: FormData): Promise<ActionResu
   });
   if (!match) return { message: "Partita non trovata." };
 
-  const teamIds = [match.homeTeamId, match.awayTeamId].filter((id): id is number => id !== null);
-  const players = await db.player.findMany({
-    where: { footballTeamId: { in: teamIds } },
-    select: { id: true },
-  });
-
-  await db.$transaction(
-    players.map((p) =>
-      db.matchPlayer.upsert({
-        where: { matchId_playerId: { matchId, playerId: p.id } },
-        create: { matchId, playerId: p.id },
-        update: {},
-      })
-    )
-  );
+  const { playerCount } = await db.$transaction((tx) => syncMatchPlayers(tx, matchId));
 
   await logAdminAction(Number(admin.id), "ADD_PLAYER", "MatchPlayer", `${matchId}_all`, null, {
     matchId,
-    count: players.length,
+    count: playerCount,
   });
   revalidatePath(`/admin/partite/${matchId}`);
   await revalidateDcupPublicPaths(matchId);

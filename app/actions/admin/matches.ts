@@ -9,6 +9,7 @@ import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
 import { parseMatchDateTimeInput, resolveMatchScore } from "@/lib/domain/match";
 import { getLastClosedAt } from "@/lib/scoring";
+import { syncMatchPlayers } from "@/lib/match-players-sync";
 import type { ActionResult } from "./football-teams";
 import { revalidateDcupPublicPaths } from "./revalidate-public";
 
@@ -127,32 +128,25 @@ export async function createMatch(_prev: ActionResult | undefined, formData: For
 
   const startsAt = startsAtFromForm(parsed.data.date, parsed.data.time);
 
-  const match = await db.match.create({
-    data: {
-      homeTeamId: parsed.data.homeTeamId,
-      awayTeamId: parsed.data.awayTeamId,
-      status: parsed.data.status,
-      startsAt,
-      groupId: parsed.data.groupId ?? null,
-      knockoutRoundId: parsed.data.knockoutRoundId ?? null,
-    },
-  });
-
-  const players = await db.player.findMany({
-    where: { footballTeamId: { in: [parsed.data.homeTeamId, parsed.data.awayTeamId] } },
-    select: { id: true },
-  });
-  if (players.length > 0) {
-    await db.matchPlayer.createMany({
-      data: players.map((p) => ({ matchId: match.id, playerId: p.id })),
-      skipDuplicates: true,
+  const { match, playerCount } = await db.$transaction(async (tx) => {
+    const match = await tx.match.create({
+      data: {
+        homeTeamId: parsed.data.homeTeamId,
+        awayTeamId: parsed.data.awayTeamId,
+        status: parsed.data.status,
+        startsAt,
+        groupId: parsed.data.groupId ?? null,
+        knockoutRoundId: parsed.data.knockoutRoundId ?? null,
+      },
     });
-  }
+    const { playerCount } = await syncMatchPlayers(tx, match.id);
+    return { match, playerCount };
+  });
 
   await logAdminAction(Number(admin.id), "CREATE", "Match", match.id, null, {
     ...match,
     startsAt: match.startsAt.toISOString(),
-    autoAddedPlayers: players.length,
+    autoAddedPlayers: playerCount,
   });
 
   revalidatePath("/admin/partite");
@@ -251,18 +245,8 @@ export async function updateMatch(_prev: ActionResult | undefined, formData: For
   const match = await db.$transaction(async (tx) => {
     const updated = await tx.match.update({ where: { id }, data: updateData });
     if (teamsChanged) {
-      // Riallinea i giocatori presenti alle nuove squadre (nessun gol/voto/bonus esistente, verificato sopra).
-      await tx.matchPlayer.deleteMany({ where: { matchId: id } });
-      const players = await tx.player.findMany({
-        where: { footballTeamId: { in: [parsed.data.homeTeamId, parsed.data.awayTeamId] } },
-        select: { id: true },
-      });
-      if (players.length > 0) {
-        await tx.matchPlayer.createMany({
-          data: players.map((p) => ({ matchId: id, playerId: p.id })),
-          skipDuplicates: true,
-        });
-      }
+      // Riallinea i giocatori presenti alle nuove squadre.
+      await syncMatchPlayers(tx, id);
     }
     return updated;
   });

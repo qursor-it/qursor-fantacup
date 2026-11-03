@@ -58,27 +58,27 @@ export async function setRosterEditWindow(_prev: ActionResult | undefined, formD
     await revalidateFantasyPublicPaths();
   }
 
-  const existing = await db.rosterEditWindow.findFirst({
-    where: { closesAt: { gt: now } },
-    orderBy: { opensAt: "desc" },
-  });
+  const { id: windowId, before, after } = await db.$transaction(async (tx) => {
+    const existing = await tx.rosterEditWindow.findFirst({
+      where: { closesAt: { gt: now } },
+      orderBy: { opensAt: "desc" },
+    });
 
-  if (existing) {
-    await db.rosterEditWindow.update({
-      where: { id: existing.id },
-      data: { opensAt, closesAt, maxChanges },
-    });
-    await logAdminAction(Number(admin.id), "SET_ROSTER_WINDOW", "RosterEditWindow", existing.id, existing, {
-      opensAt,
-      closesAt,
-      maxChanges,
-    });
-  } else {
-    const created = await db.rosterEditWindow.create({
+    if (existing) {
+      const updated = await tx.rosterEditWindow.update({
+        where: { id: existing.id },
+        data: { opensAt, closesAt, maxChanges },
+      });
+      return { id: existing.id, before: existing, after: updated };
+    }
+
+    const created = await tx.rosterEditWindow.create({
       data: { opensAt, closesAt, maxChanges, createdById: Number(admin.id) },
     });
-    await logAdminAction(Number(admin.id), "SET_ROSTER_WINDOW", "RosterEditWindow", created.id, null, created);
-  }
+    return { id: created.id, before: null, after: created };
+  });
+
+  await logAdminAction(Number(admin.id), "SET_ROSTER_WINDOW", "RosterEditWindow", windowId, before, after);
 
   revalidatePath("/admin/modifiche-rosa");
   revalidatePath("/squadra");

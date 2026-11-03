@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { logAdminAction } from "@/lib/audit";
 import { MatchStatus } from "@prisma/client";
+import { syncMatchPlayers } from "@/lib/match-players-sync";
 import type { ActionResult } from "./football-teams";
 import { revalidateDcupPublicPaths } from "./revalidate-public";
 
@@ -130,29 +131,20 @@ export async function assignKnockoutTeams(_prev: ActionResult | undefined, formD
     return { message: "Una delle squadre è già assegnata a un'altra partita dello stesso turno." };
   }
 
-  const players = await db.player.findMany({
-    where: { footballTeamId: { in: [homeTeamId, awayTeamId] } },
-    select: { id: true },
-  });
-
-  await db.$transaction([
-    db.match.update({
+  const { playerCount } = await db.$transaction(async (tx) => {
+    await tx.match.update({
       where: { id: matchId },
       data: { homeTeamId, awayTeamId },
-    }),
-    db.matchPlayer.deleteMany({ where: { matchId } }),
-    db.matchPlayer.createMany({
-      data: players.map((p) => ({ matchId, playerId: p.id })),
-      skipDuplicates: true,
-    }),
-  ]);
+    });
+    return syncMatchPlayers(tx, matchId);
+  });
   await logAdminAction(
     Number(admin.id),
     "ASSIGN_KNOCKOUT_TEAMS",
     "Match",
     matchId,
     { homeTeamId: before.homeTeamId, awayTeamId: before.awayTeamId },
-    { homeTeamId, awayTeamId, autoAddedPlayers: players.length }
+    { homeTeamId, awayTeamId, autoAddedPlayers: playerCount }
   );
 
   revalidatePath("/admin/eliminazione");
