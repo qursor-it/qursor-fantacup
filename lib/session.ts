@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
@@ -13,7 +14,7 @@ export type SessionUser = {
  * Restituisce l'utente corrente dalla sessione, o null se non autenticato.
  * Da usare nei Server Components e Server Actions.
  */
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const session = await auth();
   if (!session?.user?.id) return null;
   return {
@@ -22,7 +23,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     name: session.user.name,
     role: session.user.role,
   };
-}
+});
 
 /**
  * Richiede autenticazione. Fa redirect a /login se non autenticato.
