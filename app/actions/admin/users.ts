@@ -91,12 +91,6 @@ export async function demoteToUser(formData: FormData): Promise<ActionResult> {
   return {};
 }
 
-const CreateAdminSchema = z.object({
-  email: z.string().email("Email non valida").trim().toLowerCase(),
-  password: z.string().min(8, "Password min 8 caratteri"),
-  name: z.string().trim().optional(),
-});
-
 const SetPasswordSchema = z
   .object({
     userId: z.coerce.number().int().positive(),
@@ -170,26 +164,4 @@ export async function adminDeleteUser(
   // La cancellazione rimuove in cascata la squadra fantasy dell'utente.
   await revalidateFantasyPublicPaths();
   return { success: true };
-}
-
-export async function createAdmin(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  const parsed = CreateAdminSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-    name: formData.get("name") || undefined,
-  });
-  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
-
-  const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
-  if (existing) return { errors: { email: ["Email già registrata."] } };
-
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  const newAdmin = await db.user.create({
-    data: { email: parsed.data.email, passwordHash, name: parsed.data.name, role: UserRole.ADMIN },
-  });
-  await logAdminAction(Number(admin.id), "CREATE_ADMIN", "User", newAdmin.id, null, { email: newAdmin.email, role: newAdmin.role });
-
-  revalidatePath("/admin/utenti");
-  return { message: `Admin ${newAdmin.email} creato.` };
 }

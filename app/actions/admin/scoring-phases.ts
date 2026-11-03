@@ -32,21 +32,6 @@ export async function closeScoringPhaseAction(_prev: ActionResult | undefined, f
   return { message: "Fase chiusa e storico salvato." };
 }
 
-export async function renameScoringPhase(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  const id = Number(formData.get("id"));
-  const parsed = NameSchema.safeParse({ name: formData.get("name") });
-  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
-
-  const before = await db.scoringPhase.findUnique({ where: { id } });
-  if (!before) return { message: "Fase non trovata." };
-
-  await db.scoringPhase.update({ where: { id }, data: { name: parsed.data.name } });
-  await logAdminAction(Number(admin.id), "RENAME_SCORING_PHASE", "ScoringPhase", id, before, { name: parsed.data.name });
-  await revalidateScoring();
-  return { message: "Fase rinominata." };
-}
-
 /** Elimina solo l'ultima fase (per non rompere il confine delle fasi successive). */
 export async function deleteScoringPhase(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();

@@ -259,14 +259,3 @@ export async function computeGroupStandings(groupId: number): Promise<StandingEn
   return entries.map((e, i) => ({ ...e, rank: i + 1 }));
 }
 
-/** Classifica per tutti i gironi — restituisce Map<groupId, StandingEntry[]> */
-export async function computeAllGroupsStandings(): Promise<Map<number, StandingEntry[]>> {
-  const groups = await db.group.findMany({ select: { id: true } });
-  const result = new Map<number, StandingEntry[]>();
-  await Promise.all(
-    groups.map(async (g) => {
-      result.set(g.id, await computeGroupStandings(g.id));
-    })
-  );
-  return result;
-}
