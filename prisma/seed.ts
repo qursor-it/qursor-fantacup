@@ -1,6 +1,5 @@
-import { MatchStatus, PlayerRole, PrismaClient, UserRole } from "@prisma/client";
+import { MatchStatus, PlayerRole, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -162,31 +161,6 @@ const DEV_GROUPS: {
     ],
   },
 ];
-
-// ─── Admin ────────────────────────────────────────────────────────────────
-async function seedAdmin() {
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@fantadc.local";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
-
-  const existing = await db.user.findUnique({ where: { email: adminEmail } });
-  if (existing) {
-    console.log(`· Admin già presente: ${adminEmail}`);
-    return;
-  }
-
-  if (!adminPassword) {
-    console.warn(
-      `⚠ SEED_ADMIN_PASSWORD non impostata: admin ${adminEmail} non creato.`
-    );
-    return;
-  }
-
-  const passwordHash = await bcrypt.hash(adminPassword, 12);
-  await db.user.create({
-    data: { email: adminEmail, passwordHash, name: "Admin", role: UserRole.ADMIN },
-  });
-  console.log(`✓ Admin creato: ${adminEmail}`);
-}
 
 // ─── Bonus types ──────────────────────────────────────────────────────────
 async function seedBonusTypes() {
@@ -410,7 +384,6 @@ async function seedKnockoutRounds() {
 
 // ─── Main ─────────────────────────────────────────────────────────────────
 async function main() {
-  await seedAdmin();
   await seedBonusTypes();
   await seedDevTournamentData();
   await seedKnockoutRounds();

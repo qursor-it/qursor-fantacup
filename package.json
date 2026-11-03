@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:seed": "npx tsx prisma/seed.ts",
-    "db:seed-prod-admin": "npx tsx prisma/seed-prod-admin.ts",
+    "db:seed-admin": "npx tsx prisma/seed-admin.ts",
     "db:seed-tournament": "npx tsx prisma/seed-tournament.ts",
     "go-live-check": "npx tsx scripts/go-live-check.ts"
   },

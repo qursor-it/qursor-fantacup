@@ -50,6 +50,11 @@ pipeline {
                     file(
                         credentialsId: 'fantadc-env-docker-prod',
                         variable: 'ENV_DOCKER_FILE'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'fantadc-admin-prod',
+                        usernameVariable: 'ADMIN_EMAIL',
+                        passwordVariable: 'ADMIN_PASSWORD'
                     )
                 ]) {
                     script {
@@ -81,8 +86,9 @@ pipeline {
                             sh 'docker compose --env-file .env.docker -f docker-compose.prod.yml build fantadc'
                             // 4. Applica le migration pendenti
                             sh 'docker compose --env-file .env.docker -f docker-compose.prod.yml run --rm -e DATABASE_URL="$APP_DATABASE_URL" fantadc sh -c \'npx prisma migrate deploy\''
-                            // 5. Seed admin PROD (richiede PROD_ADMIN_PASSWORD in .env.docker)
-                            sh 'docker compose --env-file .env.docker -f docker-compose.prod.yml run --rm -e DATABASE_URL="$APP_DATABASE_URL" fantadc sh -c \'npm run db:seed-prod-admin\''
+                            // 5. Seed admin PROD (email/password dalla credential Jenkins fantadc-admin-prod).
+                            // -e senza valore passa la variabile dall'ambiente senza esporla nei log.
+                            sh 'docker compose --env-file .env.docker -f docker-compose.prod.yml run --rm -e DATABASE_URL="$APP_DATABASE_URL" -e ADMIN_EMAIL -e ADMIN_PASSWORD fantadc sh -c \'npm run db:seed-admin\''
                             // Evita conflitti sul container app con nome fisso.
                             // Non rimuove volumi: cancella solo il container.
                             sh 'docker rm -f fantadc-prod || true'

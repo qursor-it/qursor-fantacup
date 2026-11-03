@@ -88,6 +88,15 @@ Al momento quei file non sono presenti nel workspace, quindi quando inizieremo l
   * iOS: wrapper nativo (es. Capacitor/PWABuilder) con build Xcode e App Store Connect
 * le credenziali store, i bundle identifier, le chiavi di firma e gli asset marketing non devono stare nel repository
 
+## Account admin
+
+L'admin non viene più creato dai seed applicativi: viene sincronizzato da `npm run db:seed-admin` (`prisma/seed-admin.ts`), eseguito da Jenkins a ogni deploy.
+
+* DEV: credential Jenkins `fantadc-admin-dev`, env `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+* PROD: credential Jenkins `fantadc-admin-prod`, env `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+
+Jenkins è la fonte di verità della password. Lo script crea l'utente se manca, ne garantisce il ruolo `ADMIN` e, se `bcrypt.compare` fallisce, aggiorna `passwordHash` e `passwordChangedAt` (il callback JWT in `lib/auth.ts` invalida le sessioni emesse prima di quella data). Se la password combacia non tocca nulla, quindi le sessioni sopravvivono ai deploy normali. Una password cambiata dall'admin via UI viene sovrascritta al deploy successivo se differisce dalla credential.
+
 ## Rate limiting e proxy
 
 Il rate limit usa l'IP del client ricavato da `x-forwarded-for` partendo da destra, perche i valori a sinistra possono essere iniettati dal client. La variabile d'ambiente `TRUSTED_PROXY_HOPS` (intero, default `1`) indica quanti reverse proxy fidati stanno davanti al container e deve corrispondere al deployment reale: con un solo proxy in front si lascia `1`, con due si imposta `2`, mentre `0` prende comunque il valore piu a destra dell'header.

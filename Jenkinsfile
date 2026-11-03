@@ -46,6 +46,11 @@ pipeline {
                     string(
                         credentialsId: 'fantadc-nextauth-secret-dev',
                         variable: 'NEXTAUTH_SECRET'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'fantadc-admin-dev',
+                        usernameVariable: 'ADMIN_EMAIL',
+                        passwordVariable: 'ADMIN_PASSWORD'
                     )
                 ]) {
                     script {
@@ -79,6 +84,9 @@ pipeline {
                             // 4. Seed (idempotente, skippa se i dati esistono gia)
                             sh 'docker compose run --rm -e DATABASE_URL="$APP_DATABASE_URL" -e NODE_ENV=development fantadc sh -c \'DATABASE_URL="$DATABASE_URL" NODE_ENV=development npx tsx prisma/seed.ts\''
                             sh 'docker compose run --rm -e DATABASE_URL="$APP_DATABASE_URL" -e NODE_ENV=development fantadc sh -c \'DATABASE_URL="$DATABASE_URL" NODE_ENV=development npx tsx prisma/seed-greenvolley.ts\''
+                            // 4b. Admin da credential Jenkins (fantadc-admin-dev): Jenkins è la fonte di verità.
+                            // -e senza valore passa la variabile dall'ambiente senza esporla nei log.
+                            sh 'docker compose run --rm -e DATABASE_URL="$APP_DATABASE_URL" -e ADMIN_EMAIL -e ADMIN_PASSWORD fantadc sh -c \'npm run db:seed-admin\''
                             // 5. Avvia (o riavvia) il container app
                             sh 'docker compose up -d --force-recreate fantadc'
                         }

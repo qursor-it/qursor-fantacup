@@ -32,7 +32,7 @@ async function run() {
   results.push({
     label: "Admin presente",
     ok: adminCount > 0,
-    detail: adminCount > 0 ? `${adminCount} admin` : "Eseguire: npm run db:seed",
+    detail: adminCount > 0 ? `${adminCount} admin` : "Eseguire: npm run db:seed-admin",
   });
 
   // 3. Bonus type caricati
@@ -77,18 +77,15 @@ async function run() {
     detail: hasAuthSecret ? "ok" : "Impostare AUTH_SECRET nel file .env",
   });
 
-  // 7. Non è ancora in uso la password di default
-  const defaultAdminEmail = "admin@fantadc.local";
-  const defaultAdmin = await db.user.findUnique({ where: { email: defaultAdminEmail } });
-  if (defaultAdmin) {
-    results.push({
-      label: "Password admin cambiata",
-      ok: false,
-      detail: `L'admin ${defaultAdminEmail} usa ancora la password di default — cambiarla via admin prima del go-live`,
-    });
-  } else {
-    results.push({ label: "Password admin cambiata", ok: true, detail: "email custom configurata" });
-  }
+  // 7. Credenziali admin configurate per il seed
+  const hasAdminCredentials = !!process.env.ADMIN_EMAIL && !!process.env.ADMIN_PASSWORD;
+  results.push({
+    label: "Credenziali admin configurate",
+    ok: hasAdminCredentials,
+    detail: hasAdminCredentials
+      ? "ok"
+      : "Impostare ADMIN_EMAIL e ADMIN_PASSWORD (o la credential Jenkins)",
+  });
 
   // ─── Report ─────────────────────────────────────────────────────────────────
   printResults(results);

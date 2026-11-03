@@ -64,7 +64,7 @@ Puo:
 
 Nota:
 
-* esiste un admin di default
+* l'admin iniziale è provisionato da Jenkins tramite la credential dedicata (vedi `technical_baseline.md`), non dai seed applicativi
 * operativamente esiste un solo livello di admin, anche se l'admin iniziale ha funzione di bootstrap
 
 ## Principio operativo
