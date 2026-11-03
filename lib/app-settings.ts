@@ -24,3 +24,25 @@ export async function setRegistrationOpen(value: boolean, adminUserId: number): 
     { registrationOpen: value }
   );
 }
+
+export async function getTournamentConcluded(): Promise<boolean> {
+  const setting = await db.appSetting.findUnique({ where: { id: 1 }, select: { tournamentConcluded: true } });
+  return setting?.tournamentConcluded ?? false;
+}
+
+export async function setTournamentConcluded(value: boolean, adminUserId: number): Promise<void> {
+  const before = await getTournamentConcluded();
+  await db.appSetting.upsert({
+    where: { id: 1 },
+    update: { tournamentConcluded: value },
+    create: { id: 1, tournamentConcluded: value },
+  });
+  await logAdminAction(
+    adminUserId,
+    value ? "CONCLUDE_TOURNAMENT" : "REOPEN_TOURNAMENT",
+    "AppSetting",
+    1,
+    { tournamentConcluded: before },
+    { tournamentConcluded: value }
+  );
+}

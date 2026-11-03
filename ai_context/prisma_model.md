@@ -266,8 +266,9 @@ model AdminAuditLog {
 
 // Impostazioni singleton dell'app (id=1 fisso, upsert).
 model AppSetting {
-  id               Int     @id
-  registrationOpen Boolean @default(true)
+  id                  Int     @id
+  registrationOpen    Boolean @default(true)
+  tournamentConcluded Boolean @default(false)
 }
 
 enum UserRole {

@@ -12,6 +12,7 @@ import ReviewPromptModal from "@/components/review-prompt-modal";
 import { getSiteUrl, siteConfig } from "@/lib/site";
 import { getCurrentUser } from "@/lib/session";
 import { getReviewPromptPlayers } from "@/lib/review-prompt";
+import { getTournamentConcluded } from "@/lib/app-settings";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -78,14 +79,14 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const user = await getCurrentUser();
-  const reviewPromptPlayers = user ? await getReviewPromptPlayers(Number(user.id)) : [];
+  const [user, concluded] = await Promise.all([getCurrentUser(), getTournamentConcluded()]);
+  const reviewPromptPlayers = user && !concluded ? await getReviewPromptPlayers(Number(user.id)) : [];
 
   return (
     <html lang="it" className={`h-full antialiased ${inter.variable}`}>
       <body className="min-h-full flex flex-col font-[var(--font-inter)]">
         <Providers>
-          <SplashScreen />
+          {!concluded && <SplashScreen />}
           {children}
           <ReviewPromptModal players={reviewPromptPlayers} />
           <VisitTracker />

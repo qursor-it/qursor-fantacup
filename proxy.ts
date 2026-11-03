@@ -2,9 +2,12 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { UserRole } from "@prisma/client";
+import { getTournamentConcluded } from "@/lib/app-settings";
+
+const CONCLUDED_PATH = "/torneo-concluso";
 
 export const proxy = auth(
-  (
+  async (
     req: NextRequest & {
       auth: { user?: { role?: string; id?: string } } | null;
     }
@@ -13,6 +16,16 @@ export const proxy = auth(
     const session = req.auth;
     const isAuthenticated = !!session?.user?.id;
     const isAdmin = session?.user?.role === UserRole.ADMIN;
+
+    // Torneo concluso: i non-admin vedono solo la pagina dedicata (/login e /admin restano raggiungibili per far entrare gli admin).
+    // Se il DB non risponde, il sito resta accessibile invece di andare giù.
+    const concluded = await getTournamentConcluded().catch(() => false);
+    if (pathname === CONCLUDED_PATH) {
+      return concluded ? NextResponse.next() : NextResponse.redirect(new URL("/", req.url));
+    }
+    if (concluded && !isAdmin && pathname !== "/login" && !pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL(CONCLUDED_PATH, req.url));
+    }
 
     // Protezione area admin
     if (pathname.startsWith("/admin")) {
@@ -46,12 +59,6 @@ export const proxy = auth(
 );
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/dashboard/:path*",
-    "/squadra/:path*",
-    "/vota/:path*",
-    "/login",
-    "/register",
-  ],
+  // Tutte le pagine (serve al flag "torneo concluso"), esclusi API, asset Next e file statici.
+  matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)"],
 };

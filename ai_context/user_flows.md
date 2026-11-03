@@ -78,6 +78,7 @@ Flussi base:
 9. vedere tutte le squadre fantasy e intervenire manualmente sulle rose
 10. sospendere utenti e gestire altri admin
 11. consultare il log delle modifiche amministrative
+12. segnare il torneo come concluso da `/admin/impostazioni` (`AppSetting.tournamentConcluded`): finché è attivo, ospiti e utenti non admin vengono rimandati a `/torneo-concluso` (il controllo è in `proxy.ts`), mentre `/login` e `/admin` restano raggiungibili e gli admin vedono il sito normalmente
 
 ## 6. Calcolo risultati fantasy
 

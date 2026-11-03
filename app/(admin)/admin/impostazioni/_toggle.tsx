@@ -2,10 +2,29 @@
 
 import { useState, useTransition } from "react";
 import { InputSwitch } from "primereact/inputswitch";
-import { setRegistrationOpenAction } from "@/app/actions/admin/settings";
 import { useAppToast } from "@/components/toast-provider";
 
-export default function RegistrationToggle({ initialValue }: { initialValue: boolean }) {
+type Props = {
+  initialValue: boolean;
+  action: (value: boolean) => Promise<{ error?: string }>;
+  label: string;
+  onText: string;
+  offText: string;
+  onToast: string;
+  offToast: string;
+  onColor?: string;
+};
+
+export default function SettingToggle({
+  initialValue,
+  action,
+  label,
+  onText,
+  offText,
+  onToast,
+  offToast,
+  onColor = "#16A34A",
+}: Props) {
   const [value, setValue] = useState(initialValue);
   const [pending, startTransition] = useTransition();
   const { success, error } = useAppToast();
@@ -14,12 +33,12 @@ export default function RegistrationToggle({ initialValue }: { initialValue: boo
     const prev = value;
     setValue(newValue);
     startTransition(async () => {
-      const result = await setRegistrationOpenAction(newValue);
+      const result = await action(newValue);
       if (result?.error) {
         error(result.error);
         setValue(prev);
       } else {
-        success(newValue ? "Registrazioni aperte." : "Registrazioni chiuse.");
+        success(newValue ? onToast : offToast);
       }
     });
   }
@@ -28,10 +47,10 @@ export default function RegistrationToggle({ initialValue }: { initialValue: boo
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0">
         <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          Registrazione utenti
+          {label}
         </p>
-        <p className="text-xs mt-0.5" style={{ color: value ? "#16A34A" : "var(--text-muted)" }}>
-          {value ? "Aperte — chiunque può registrarsi." : "Chiuse — la pagina mostra un avviso."}
+        <p className="text-xs mt-0.5" style={{ color: value ? onColor : "var(--text-muted)" }}>
+          {value ? onText : offText}
         </p>
       </div>
       <InputSwitch
