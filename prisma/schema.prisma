@@ -299,7 +299,7 @@ model ScoringPhase {
   createdBy   User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
   scores      ScoringPhaseScore[]
 
-  @@index([order])
+  @@unique([order])
 }
 
 // Punti congelati di una squadra in una fase (solo i punti di quella fase).

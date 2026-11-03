@@ -2,11 +2,18 @@ import { db } from "@/lib/db";
 import { logAdminAction } from "@/lib/audit";
 import { computeFantasyTeamPoints } from "@/lib/scoring";
 import { resolveMvp } from "@/lib/domain/mvp";
-import { MatchStatus } from "@prisma/client";
+import { MatchStatus, Prisma, type ScoringPhase } from "@prisma/client";
 
 export type CloseScoringPhaseResult =
   | { ok: true; phaseId: number }
   | { ok: false; error: string };
+
+const PHASE_CONFLICT_MESSAGE = "Fase già chiusa da un altro admin, ricarica la pagina.";
+
+// Chiave fissa per il lock advisory transazionale: serializza le chiusure di fase.
+const SCORING_PHASE_LOCK_KEY = BigInt(734120001);
+
+class PhaseConflictError extends Error {}
 
 /**
  * Partite già concluse (nell'intervallo della fase) il cui MVP non è ancora
@@ -53,7 +60,7 @@ export async function closeScoringPhase(
 ): Promise<CloseScoringPhaseResult> {
   const last = await db.scoringPhase.findFirst({
     orderBy: { order: "desc" },
-    select: { closedAt: true, order: true },
+    select: { id: true, closedAt: true, order: true },
   });
   const from = last?.closedAt ?? null;
   const to = new Date();
@@ -78,23 +85,47 @@ export async function closeScoringPhase(
 
   const order = (last?.order ?? 0) + 1;
 
-  const phase = await db.$transaction(async (tx) => {
-    const created = await tx.scoringPhase.create({
-      data: { name, order, startsAt: from, closedAt: to, createdById: adminUserId },
-    });
-    if (teams.length > 0) {
-      await tx.scoringPhaseScore.createMany({
-        data: teams.map((t) => ({
-          phaseId: created.id,
-          fantasyTeamId: t.id,
-          points: points.get(t.id) ?? 0,
-          rosterPlayerIds: t.players.map((p) => p.playerId),
-          captainPlayerId: t.captainPlayerId,
-        })),
+  let phase: ScoringPhase;
+  try {
+    phase = await db.$transaction(async (tx) => {
+      // Serializza le chiusure concorrenti: il secondo caller attende e poi
+      // vede la fase creata dal primo.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${SCORING_PHASE_LOCK_KEY})`;
+
+      // Rilettura dentro la transazione: se un altro admin ha chiuso nel
+      // frattempo, i punti calcolati sopra non sono più validi.
+      const currentLast = await tx.scoringPhase.findFirst({
+        orderBy: { order: "desc" },
+        select: { id: true },
       });
+      if ((currentLast?.id ?? null) !== (last?.id ?? null)) {
+        throw new PhaseConflictError();
+      }
+
+      const created = await tx.scoringPhase.create({
+        data: { name, order, startsAt: from, closedAt: to, createdById: adminUserId },
+      });
+      if (teams.length > 0) {
+        await tx.scoringPhaseScore.createMany({
+          data: teams.map((t) => ({
+            phaseId: created.id,
+            fantasyTeamId: t.id,
+            points: points.get(t.id) ?? 0,
+            rosterPlayerIds: t.players.map((p) => p.playerId),
+            captainPlayerId: t.captainPlayerId,
+          })),
+        });
+      }
+      return created;
+    });
+  } catch (error) {
+    const isUniqueOrderConflict =
+      error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+    if (error instanceof PhaseConflictError || isUniqueOrderConflict) {
+      return { ok: false, error: PHASE_CONFLICT_MESSAGE };
     }
-    return created;
-  });
+    throw error;
+  }
 
   await logAdminAction(adminUserId, "CLOSE_SCORING_PHASE", "ScoringPhase", phase.id, null, {
     name,

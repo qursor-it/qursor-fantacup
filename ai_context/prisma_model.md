@@ -248,6 +248,37 @@ model FantasyTeamPlayer {
   @@index([playerId])
 }
 
+// Fase di punteggio fanta chiusa (snapshot storico). `order` è unico: due
+// chiusure concorrenti non possono creare fasi con lo stesso ordine.
+model ScoringPhase {
+  id          Int                 @id @default(autoincrement())
+  name        String
+  order       Int
+  startsAt    DateTime?           // confine inferiore = closedAt della fase precedente (null per la prima)
+  closedAt    DateTime            // momento dello snapshot
+  createdById Int?
+  createdAt   DateTime            @default(now())
+
+  createdBy   User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  scores      ScoringPhaseScore[]
+
+  @@unique([order])
+}
+
+model ScoringPhaseScore {
+  phaseId         Int
+  fantasyTeamId   Int
+  points          Decimal  @db.Decimal(7, 2)
+  rosterPlayerIds Json
+  captainPlayerId Int
+
+  phase       ScoringPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  fantasyTeam FantasyTeam  @relation(fields: [fantasyTeamId], references: [id], onDelete: Cascade)
+
+  @@id([phaseId, fantasyTeamId])
+  @@index([fantasyTeamId])
+}
+
 model AdminAuditLog {
   id          Int      @id @default(autoincrement())
   adminUserId Int?
