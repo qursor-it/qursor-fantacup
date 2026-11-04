@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: `Torneo concluso | ${siteConfig.name}`,
+  title: "Torneo concluso",
 };
 
 // Stessa grafica dello splash screen (components/splash-screen.tsx), ma come pagina statica.

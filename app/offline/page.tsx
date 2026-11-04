@@ -2,7 +2,7 @@ import Link from "next/link";
 import MobileOnlyGate from "@/components/mobile-only-gate";
 
 export const metadata = {
-  title: "Offline | Fantadc",
+  title: "Offline",
 };
 
 const quickLinks = [
