@@ -30,6 +30,7 @@ Puo:
 * nominare un capitano della rosa
 * consultare elenco giocatori, squadre reali, calendario e dettaglio partite
 * esprimere un voto MVP per partita nella finestra consentita
+* pubblicare una story con sola foto per partita, solo mentre la finestra MVP e aperta (vedi `stories.md`)
 * vedere classifica, storico punteggi e dettaglio bonus
 * modificare i dati consentiti del proprio profilo
 
@@ -40,6 +41,18 @@ Non puo:
 * assegnare bonus o malus
 * modificare dati di altri utenti
 * accedere ai log amministrativi
+
+## Caposquadra
+
+Utente registrato a cui un admin assegna il ruolo, collegato a una squadra reale. Dettagli in `stories.md`.
+
+Puo, oltre a quanto puo un utente registrato:
+
+* pubblicare stories con foto e video
+
+Non puo:
+
+* fare nulla di riservato agli admin
 
 ## Admin
 
@@ -60,6 +73,9 @@ Puo:
 * correggere o annullare voti MVP
 * chiudere o riaprire finestre di voto
 * vedere il log amministrativo
+* pubblicare stories con foto e video senza limiti
+* eliminare qualsiasi story, anche gia pubblicata
+* assegnare e togliere il ruolo caposquadra
 * creare altri admin
 
 Nota:

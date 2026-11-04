@@ -22,6 +22,10 @@ Questo file non raccoglie piu le decisioni macro iniziali: ora elenca solo i pun
 
 ## Punti ancora aperti
 
+### 0. Stories
+
+Decisione presa in `stories.md`; i dettagli ancora aperti (durata, limiti dei file, visibilita, segnalazioni) sono elencati li.
+
 ### 1. Spareggi di classifica
 
 Da definire:

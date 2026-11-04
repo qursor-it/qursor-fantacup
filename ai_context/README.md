@@ -14,6 +14,7 @@ Non e un planning operativo: serve a descrivere prodotto, dominio, regole, fluss
 7. `technical_baseline.md`
    - `multi_tournament.md`
    - `tournament_ui.md`
+   - `stories.md`
 8. `open_questions.md`
 9. `open_questions/decisioni_core.md`
 
@@ -54,6 +55,10 @@ Decisione e funzionamento della gestione di più tornei sullo stesso codice: un'
 ### `tournament_ui.md`
 
 Guida pratica per pagine presenti in un solo torneo, versioni di pagina per torneo e ritocchi grafici, con esempi e comandi di verifica.
+
+### `stories.md`
+
+Decisione sulla sezione stories (foto e video in stile Instagram): chi pubblica, limiti, moderazione admin, ruolo caposquadra e servizio Quarkus dedicato.
 
 ### `open_questions.md`
 
