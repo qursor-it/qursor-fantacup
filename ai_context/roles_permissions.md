@@ -14,6 +14,8 @@ Puo:
 
 Non puo:
 
+* vedere le stories
+
 * creare squadre fantasy
 * votare MVP
 * accedere ad area amministrativa
@@ -31,6 +33,8 @@ Puo:
 * consultare elenco giocatori, squadre reali, calendario e dettaglio partite
 * esprimere un voto MVP per partita nella finestra consentita
 * pubblicare una story con sola foto per partita, solo mentre la finestra MVP e aperta (vedi `stories.md`)
+* vedere le stories, reagire e segnalarle agli admin
+* vedere chi ha visto e chi ha reagito alle proprie stories
 * vedere classifica, storico punteggi e dettaglio bonus
 * modificare i dati consentiti del proprio profilo
 
@@ -48,7 +52,7 @@ Utente registrato a cui un admin assegna il ruolo, collegato a una squadra reale
 
 Puo, oltre a quanto puo un utente registrato:
 
-* pubblicare stories con foto e video
+* pubblicare stories con foto e video, al massimo 10 attive nelle ultime 24 ore
 
 Non puo:
 
@@ -75,6 +79,7 @@ Puo:
 * vedere il log amministrativo
 * pubblicare stories con foto e video senza limiti
 * eliminare qualsiasi story, anche gia pubblicata
+* vedere le segnalazioni delle stories
 * assegnare e togliere il ruolo caposquadra
 * creare altri admin
 

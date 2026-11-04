@@ -7,8 +7,14 @@ Decisione del 2026-11-04. Sezione di stories in stile Instagram: contenuti brevi
 - **Contenuti:** foto e video.
 - **Chi pubblica:**
   - **Admin:** foto e video, senza limiti.
-  - **Caposquadra:** foto e video. È un ruolo nuovo (vedi sotto).
+  - **Caposquadra:** foto e video, al massimo 10 stories attive (cioè nelle ultime 24 ore). È un ruolo nuovo (vedi sotto).
   - **Utente registrato:** solo foto, solo mentre una finestra di voto MVP è aperta, al massimo una story per partita conclusa (cioè per finestra MVP).
+- **Durata:** una story è visibile per 24 ore dalla pubblicazione, poi scade e il file viene eliminato dallo storage.
+- **Chi le vede:** solo gli utenti che hanno fatto login. I guest non vedono le stories.
+- **Visualizzazioni:** si registra chi ha visto ogni story. L'autore vede l'elenco delle persone che l'hanno vista.
+- **Reazioni:** gli utenti possono reagire con un insieme fisso di emoji, come su Instagram. L'autore vede chi ha reagito e come.
+- **Segnalazioni:** un utente può segnalare una story. Le segnalazioni finiscono in un elenco nell'area admin, dove l'admin decide se eliminarla.
+- **Account cancellato o sospeso:** le stories dell'utente vengono eliminate, file compresi.
 - **Moderazione:** un admin può eliminare qualsiasi story, anche già pubblicata. L'eliminazione rimuove anche il file dallo storage e va registrata nell'audit log.
 - **Responsabilità:** va scritto in modo esplicito che l'organizzazione non si assume responsabilità per i contenuti pubblicati dagli utenti. Il testo va mostrato prima della pubblicazione e riportato nel regolamento e nella pagina privacy.
 
@@ -39,11 +45,6 @@ Prima di scegliere va verificato che il server di produzione abbia RAM e CPU suf
 
 ## Punti ancora aperti
 
-- durata di visibilità di una story (proposta: 24 ore)
 - durata massima di un video e dimensione massima dei file
-- chi può vedere le stories: anche i guest o solo gli utenti registrati
-- se gli utenti possono segnalare una story agli admin
-- se una story ha visualizzazioni, risposte o reazioni
-- se un caposquadra ha limiti di quantità
-- cosa succede alle stories quando un utente cancella l'account o viene sospeso (proposta: vengono eliminate)
+- quali emoji sono disponibili come reazioni
 - testo esatto della dichiarazione di non responsabilità

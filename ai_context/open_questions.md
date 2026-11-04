@@ -24,7 +24,7 @@ Questo file non raccoglie piu le decisioni macro iniziali: ora elenca solo i pun
 
 ### 0. Stories
 
-Decisione presa in `stories.md`; i dettagli ancora aperti (durata, limiti dei file, visibilita, segnalazioni) sono elencati li.
+Decisione presa in `stories.md`; i dettagli ancora aperti (limiti dei file video, emoji delle reazioni, testo di non responsabilita) sono elencati li.
 
 ### 1. Spareggi di classifica
 
