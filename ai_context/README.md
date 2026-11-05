@@ -15,6 +15,7 @@ Non e un planning operativo: serve a descrivere prodotto, dominio, regole, fluss
    - `multi_tournament.md`
    - `tournament_ui.md`
    - `stories.md`
+   - `media_composer.md`
 8. `open_questions.md`
 9. `open_questions/decisioni_core.md`
 
@@ -59,6 +60,10 @@ Guida pratica per pagine presenti in un solo torneo, versioni di pagina per torn
 ### `stories.md`
 
 Decisione sulla sezione stories (foto e video in stile Instagram): chi pubblica, limiti, moderazione admin, ruolo caposquadra e servizio Quarkus dedicato.
+
+### `media_composer.md`
+
+Editor di foto e video lato client (pubblicazione solo simulata): architettura, codifica, limiti dei browser, come aggiungere sticker e musica, come sostituire il mock, checklist di test manuale.
 
 ### `open_questions.md`
 

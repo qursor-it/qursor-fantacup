@@ -154,6 +154,15 @@ export default function SquadraMenu({
             >
               Regolamento
             </a>
+            <div style={{ height: 1, background: "rgba(9,20,76,0.05)" }} />
+            <a
+              href="/media/crea"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 px-4 py-4 text-xs text-black active:bg-black/5"
+            >
+              <i className="pi pi-camera text-xs" />
+              Crea foto o video
+            </a>
             {teamId !== undefined && (
               <>
                 <div style={{ height: 1, background: "rgba(9,20,76,0.05)" }} />

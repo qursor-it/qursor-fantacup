@@ -1,0 +1,105 @@
+/* Tema scuro del Media Composer. Lo scope con id serve a battere gli !important di globals.css. */
+#media-composer .p-button {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+  min-height: 44px !important;
+  padding: 0 1rem !important;
+  box-shadow: none !important;
+}
+#media-composer .p-button.p-button-icon-only {
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+}
+#media-composer .p-button.p-button-text:not(.p-button-danger),
+#media-composer .p-button.p-button-text:not(.p-button-danger) .p-button-label {
+  color: #fff !important;
+}
+#media-composer .p-button.p-button-text:not(.p-button-danger):hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+#media-composer .p-button.p-button-secondary {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: transparent !important;
+}
+#media-composer .p-button.p-button-secondary,
+#media-composer .p-button.p-button-secondary .p-button-label {
+  color: #fff !important;
+}
+#media-composer .p-button.p-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.24) !important;
+}
+
+/* Pulsanti degli strumenti: icona sopra, etichetta sotto */
+#media-composer .p-button.mc-tool {
+  flex-direction: column;
+  gap: 2px;
+  min-height: 52px !important;
+  padding: 6px 4px !important;
+  font-size: 0.6875rem !important;
+}
+#media-composer .p-button.mc-tool .p-button-icon {
+  margin: 0 !important;
+  font-size: 1.1rem;
+}
+#media-composer .p-button.mc-active.mc-active,
+#media-composer .p-button.mc-active.mc-active .p-button-label {
+  color: #e8a000 !important;
+}
+
+/* Pulsanti senza cornice (scatto, riquadri personalizzati) */
+#media-composer .p-button.mc-bare {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+#media-composer .p-button.mc-gold {
+  background: #e8a000 !important;
+  border-color: #e8a000 !important;
+}
+#media-composer .p-button.mc-gold,
+#media-composer .p-button.mc-gold .p-button-label {
+  color: #000 !important;
+}
+
+#media-composer .p-selectbutton .p-button {
+  min-height: 40px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: transparent !important;
+}
+#media-composer .p-selectbutton .p-button,
+#media-composer .p-selectbutton .p-button .p-button-label {
+  color: #fff !important;
+}
+#media-composer .p-selectbutton .p-button.p-highlight {
+  background: #e8a000 !important;
+}
+#media-composer .p-selectbutton .p-button.p-highlight,
+#media-composer .p-selectbutton .p-button.p-highlight .p-button-label {
+  color: #000 !important;
+}
+
+#media-composer .p-slider {
+  background: rgba(255, 255, 255, 0.25);
+}
+#media-composer .p-slider .p-slider-range {
+  background: #e8a000;
+}
+#media-composer .p-slider .p-slider-handle {
+  background: #fff;
+  border-color: #e8a000;
+}
+
+#media-composer .p-inputtextarea {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: inherit;
+  resize: none;
+  text-align: inherit;
+}

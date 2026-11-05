@@ -113,3 +113,7 @@ Il rate limit usa l'IP del client ricavato da `x-forwarded-for` partendo da dest
 ## Più tornei (un'installazione per torneo)
 
 Configurazione per torneo in `tournaments/<id>.ts`, scelta al build con `NEXT_PUBLIC_TOURNAMENT` (default `dcup`). Decisione, funzionamento e passi successivi in `multi_tournament.md`.
+
+## Media Composer
+
+Editor di foto e video lato client, con dipendenze `mediabunny` e `@mediabunny/aac-encoder` (MPL-2.0). Dettagli in `media_composer.md`.

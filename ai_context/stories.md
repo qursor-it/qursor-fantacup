@@ -34,6 +34,7 @@ Motivi:
 - migrare l'intero backend a Quarkus è stato valutato e scartato: costerebbe settimane per tornare alle funzioni attuali, mentre l'organizzazione del codice si migliora restando in TypeScript.
 
 Struttura prevista:
+- **Editor lato client:** il file da caricare e prodotto dal Media Composer (`media_composer.md`), che oggi pubblica solo in modo simulato.
 - **Storage a oggetti** (MinIO nel `docker-compose`, o S3/R2). Il browser carica il file direttamente tramite URL firmato: il file non passa da Next.
 - **Servizio Quarkus:** firma gli URL, salva i dati delle stories, applica i permessi e i limiti, gestisce la coda di elaborazione con ffmpeg (compressione, anteprima), la scadenza e le eliminazioni.
 - **Database:** stesso Postgres del torneo, ma in uno schema separato (`stories`) con migration Flyway, per non scontrarsi con Prisma.

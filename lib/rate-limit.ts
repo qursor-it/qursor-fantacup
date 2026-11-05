@@ -60,6 +60,12 @@ export const storyImageLimiter = new RateLimiterMemory({
   duration: 60,
 });
 
+// Pubblicazione simulata del Media Composer: max 20 richieste per utente al minuto
+export const mediaMockUploadLimiter = new RateLimiterMemory({
+  points: 20,
+  duration: 60,
+});
+
 // Tracking eventi: max 30 richieste per IP al minuto
 export const trackLimiter = new RateLimiterMemory({
   points: 30,
