@@ -48,7 +48,7 @@ describe("validateMediaFile", () => {
 
 describe("clampTrim", () => {
   it("tiene l'intervallo dentro la durata", () => {
-    expect(clampTrim(-5, 100, 30)).toEqual({ start: 0, end: 30 });
+    expect(clampTrim(-5, 100, 10)).toEqual({ start: 0, end: 10 });
   });
 
   it("garantisce almeno 1 secondo", () => {
@@ -56,8 +56,8 @@ describe("clampTrim", () => {
     expect(clampTrim(30, 30, 30)).toEqual({ start: 29, end: 30 });
   });
 
-  it("limita la finestra a 60 secondi", () => {
-    expect(clampTrim(10, 200, 300)).toEqual({ start: 10, end: 70 });
+  it("limita la finestra a 15 secondi", () => {
+    expect(clampTrim(10, 200, 300)).toEqual({ start: 10, end: 25 });
   });
 
   it("gestisce video piu corti di 1 secondo", () => {
@@ -66,10 +66,10 @@ describe("clampTrim", () => {
 });
 
 describe("createComposition", () => {
-  it("per i video trim e [0, min(durata, 60)]", () => {
-    expect(video().trim).toEqual({ start: 0, end: 30 });
+  it("per i video trim e [0, min(durata, 15)]", () => {
+    expect(video().trim).toEqual({ start: 0, end: 15 });
     const long = createComposition("video", { width: 100, height: 100, durationSeconds: 200 });
-    expect(long.trim).toEqual({ start: 0, end: 60 });
+    expect(long.trim).toEqual({ start: 0, end: 15 });
     expect(long.coverTime).toBe(0);
   });
 
@@ -117,10 +117,10 @@ describe("normalizeComposition", () => {
   it("limita l'inizio della musica cosi il brano copre la clip", () => {
     const short = MUSIC_CATALOG.find((m) => m.durationSeconds === 20)!;
     const c = normalizeComposition({ ...video(), music: { trackId: short.id, startTimeSeconds: 99 } });
-    expect(c.music).toEqual({ trackId: short.id, startTimeSeconds: 0 });
+    expect(c.music).toEqual({ trackId: short.id, startTimeSeconds: 5 });
     const long = MUSIC_CATALOG[0];
     const c2 = normalizeComposition({ ...video(), music: { trackId: long.id, startTimeSeconds: 999 } });
-    expect(c2.music?.startTimeSeconds).toBe(long.durationSeconds - 30);
+    expect(c2.music?.startTimeSeconds).toBe(long.durationSeconds - 15);
   });
 
   it("rimuove brani sconosciuti e la musica dalle foto", () => {

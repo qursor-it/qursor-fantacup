@@ -9,6 +9,7 @@ Decisione del 2026-11-04. Sezione di stories in stile Instagram: contenuti brevi
   - **Admin:** foto e video, senza limiti.
   - **Caposquadra:** foto e video, al massimo 10 stories attive (cioè nelle ultime 24 ore). È un ruolo nuovo (vedi sotto).
   - **Utente registrato:** solo foto, solo mentre una finestra di voto MVP è aperta, al massimo una story per partita conclusa (cioè per finestra MVP).
+- **Durata dei video:** al massimo 15 secondi; nell'editor si può caricare un video fino a 30 secondi e tagliarlo (decisione del 2026-11-05).
 - **Durata:** una story è visibile per 24 ore dalla pubblicazione, poi scade e il file viene eliminato dallo storage.
 - **Chi le vede:** solo gli utenti che hanno fatto login. I guest non vedono le stories.
 - **Visualizzazioni:** si registra chi ha visto ogni story. L'autore vede l'elenco delle persone che l'hanno vista.
@@ -46,6 +47,6 @@ Prima di scegliere va verificato che il server di produzione abbia RAM e CPU suf
 
 ## Punti ancora aperti
 
-- durata massima di un video e dimensione massima dei file
+- dimensione massima dei file
 - quali emoji sono disponibili come reazioni
 - testo esatto della dichiarazione di non responsabilità

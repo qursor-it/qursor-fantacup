@@ -2,7 +2,9 @@ import { clamp } from "./geometry";
 import { clampMusicStart, findTrack } from "./music";
 import type { MediaComposition, MediaKind, MediaOverlay } from "./types";
 
-export const MAX_VIDEO_SECONDS = 60;
+export const MAX_VIDEO_SECONDS = 15;
+/** Durata massima del video caricato nell'editor (registrazione o galleria). */
+export const MAX_SOURCE_VIDEO_SECONDS = 30;
 export const MIN_VIDEO_SECONDS = 1;
 export const MAX_ZOOM = 4;
 export const MAX_IMAGE_BYTES = 30 * 1024 * 1024;

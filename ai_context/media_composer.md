@@ -45,6 +45,7 @@ Interfaccia: componenti UI in `components/media-composer/`, pagina `/media/crea`
 * Encoder AAC WASM (`@mediabunny/aac-encoder`) caricato solo se il browser non codifica AAC in modo nativo.
 * Sorgente decodificata a dimensione ridotta.
 * Il file prodotto viene riletto e verificato (codec, dimensioni, durata ±0.5 s, presenza audio) prima di essere dichiarato valido.
+* Durata: video caricato nell'editor (registrazione o galleria) al massimo 30 s, file esportato al massimo 15 s (`MAX_SOURCE_VIDEO_SECONDS` e `MAX_VIDEO_SECONDS` in `composition.ts`).
 
 ## Musica
 
@@ -88,7 +89,7 @@ Implementare `MediaUploadService` (`lib/media/upload.ts`): per esempio chiedere 
 
 ## Endpoint mock
 
-`POST /api/media/mock-upload`, JSON con soli metadati: `filename`, `mimeType` (`image/webp`, `image/jpeg`, `video/mp4`), `type` (coerente col MIME), `size` (intero fino a 500 MB), `width`/`height` (1..4096), `durationSeconds` (obbligatorio per i video, fino a 61), `simulate` opzionale (solo `"error"`).
+`POST /api/media/mock-upload`, JSON con soli metadati: `filename`, `mimeType` (`image/webp`, `image/jpeg`, `video/mp4`), `type` (coerente col MIME), `size` (intero fino a 500 MB), `width`/`height` (1..4096), `durationSeconds` (obbligatorio per i video, fino a 16), `simulate` opzionale (solo `"error"`).
 
 * Richiede utente autenticato (401), limite 20 richieste al minuto per utente (429 con `Retry-After`).
 * Payload non valido o JSON rotto: 400 `{ error: "invalid_payload" }`.
@@ -120,7 +121,7 @@ La pipeline di export e stata verificata con uno script in Chrome headless (non 
 | 2 | Foto da galleria + sticker | Lo sticker compare nella posizione scelta; HEIC accettato su Safari |
 | 3 | Video camera posteriore | Registrazione, anteprima e export corretti, orientamento giusto |
 | 4 | Video camera frontale | Specchio attivo per default; il file esportato corrisponde all'anteprima |
-| 5 | Video importato + trim | Il file dura quanto l'intervallo scelto (1-60 s) |
+| 5 | Video importato + trim | Il file dura quanto l'intervallo scelto (1-15 s); un video oltre 30 s viene rifiutato all'apertura |
 | 6 | Scritta su video | La scritta e visibile per tutta la clip e nella posizione dell'anteprima |
 | 7 | Sticker su video | Come sopra |
 | 8 | Brano e punto iniziale | Cambiando l'inizio si sente il punto scelto; l'inizio non supera fine brano meno durata clip |

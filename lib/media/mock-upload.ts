@@ -4,7 +4,7 @@ export const MOCK_LATENCY_MS = 900;
 
 const MAX_BYTES = 500 * 1024 * 1024;
 const MAX_DIMENSION = 4096;
-const MAX_DURATION_SECONDS = 61;
+const MAX_DURATION_SECONDS = 16;
 const MIME_KIND = { "image/webp": "image", "image/jpeg": "image", "video/mp4": "video" } as const;
 
 const isInt = (v: unknown, min: number, max: number): v is number =>

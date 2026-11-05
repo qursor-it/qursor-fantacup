@@ -1,4 +1,4 @@
-import { clipDuration } from "./composition";
+import { clipDuration, MAX_SOURCE_VIDEO_SECONDS } from "./composition";
 import { cropRect, outputSize } from "./geometry";
 import { copyInto, findTrack, sliceAudio } from "./music";
 import { ensureStickers, loadFonts, renderComposition, type RenderAssets } from "./render";
@@ -116,12 +116,12 @@ export async function probeVideo(file: File): Promise<VideoInfo> {
     if (audio && !(await audio.canDecode())) {
       throw new MediaError("Questo browser non sa elaborare l'audio di questo video.");
     }
-    return {
-      width: video.displayWidth,
-      height: video.displayHeight,
-      durationSeconds: await input.computeDuration(),
-      hasAudio: !!audio,
-    };
+    const durationSeconds = await input.computeDuration();
+    // Un secondo di margine: la registrazione si ferma con il timer e può superare di poco il limite.
+    if (durationSeconds > MAX_SOURCE_VIDEO_SECONDS + 1) {
+      throw new MediaError(`Video troppo lungo: massimo ${MAX_SOURCE_VIDEO_SECONDS} secondi.`);
+    }
+    return { width: video.displayWidth, height: video.displayHeight, durationSeconds, hasAudio: !!audio };
   } finally {
     input.dispose();
   }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
-import { MAX_VIDEO_SECONDS } from "@/lib/media/composition";
+import { MAX_SOURCE_VIDEO_SECONDS } from "@/lib/media/composition";
 import { formatClock } from "./format";
 import { useCamera, type Facing } from "./use-camera";
 
@@ -128,7 +128,7 @@ export default function CameraView({
     timerRef.current = setInterval(() => {
       const s = (Date.now() - startedAt) / 1000;
       setElapsed(s);
-      if (s >= MAX_VIDEO_SECONDS) stopRecording();
+      if (s >= MAX_SOURCE_VIDEO_SECONDS) stopRecording();
     }, 250);
   }
 
@@ -168,7 +168,7 @@ export default function CameraView({
         {recording && (
           <div className="flex items-center gap-2 rounded-full px-3 py-1 text-sm tabular-nums" style={{ background: "rgba(0,0,0,0.5)" }}>
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />
-            {formatClock(elapsed)} / {formatClock(MAX_VIDEO_SECONDS)}
+            {formatClock(elapsed)} / {formatClock(MAX_SOURCE_VIDEO_SECONDS)}
           </div>
         )}
         {canSwitch ? (

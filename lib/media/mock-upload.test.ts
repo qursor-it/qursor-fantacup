@@ -60,8 +60,8 @@ describe("parseMockUploadPayload", () => {
     delete noDuration.durationSeconds;
     expect(parseMockUploadPayload(noDuration)).toBeNull();
     expect(parseMockUploadPayload({ ...video, durationSeconds: 0 })).toBeNull();
-    expect(parseMockUploadPayload({ ...video, durationSeconds: 61.5 })).toBeNull();
-    expect(parseMockUploadPayload({ ...video, durationSeconds: 61 })).not.toBeNull();
+    expect(parseMockUploadPayload({ ...video, durationSeconds: 16.5 })).toBeNull();
+    expect(parseMockUploadPayload({ ...video, durationSeconds: 16 })).not.toBeNull();
     expect(parseMockUploadPayload({ ...video, durationSeconds: "12" })).toBeNull();
   });
 });
