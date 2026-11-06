@@ -1,6 +1,6 @@
 # 0001. Un'installazione per torneo
 
-- **Stato:** accettato
+- **Stato:** accettato; la scelta del torneo al build è superata da ADR-0011
 - **Data:** 2026-11-03
 
 ## Contesto

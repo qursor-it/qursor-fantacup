@@ -1,8 +1,8 @@
 # F6 · Multi-torneo
 
-Decisione: `docs/adr/0001-installazione-per-torneo.md`. Funzionamento: `ai_context/multi_tournament.md`, `ai_context/tournament_ui.md`.
+Decisioni: `docs/adr/0001-installazione-per-torneo.md`, `docs/adr/0011-torneo-scelto-all-avvio.md` (un'immagine unica, torneo scelto all'avvio), `docs/adr/0010-configurazione-in-tre-livelli.md`. Funzionamento: `ai_context/multi_tournament.md`, `ai_context/tournament_ui.md`.
 
-Obiettivo della fase: portare in produzione il secondo torneo, che parte a breve, sullo stesso codice. Il primo passo è fatto: identità e regole del DCup sono in `tournaments/dcup.ts`, scelto al build con `NEXT_PUBLIC_TOURNAMENT`.
+Obiettivo della fase: portare in produzione il secondo torneo, che parte a breve, sullo stesso codice. Il primo passo è fatto: identità e regole del DCup sono in `tournaments/dcup.ts`, oggi scelto al build con `NEXT_PUBLIC_TOURNAMENT`; con F6-02 la scelta passa all'avvio del container.
 
 Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono flag per spegnerli. Le loro regole numeriche (limiti, durate, dimensioni dei file) diventeranno modificabili dagli organizzatori (F7, ADR-0010); fino ad allora stanno nella configurazione del torneo, con gli stessi valori per tutti.
 
@@ -14,14 +14,20 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Fatto quando:** sono scritti in `multi_tournament.md` (sezione "Secondo torneo: FacolCup"): id del torneo, nome, dominio, date, regole (portieri, giocatori di movimento, capitano, finestra MVP, punti MVP), sezioni attive (green volley sì o no), pagine con una versione propria (almeno il regolamento), colori, logo e icone, dati per l'app negli store.
 - **Dipende da:** —
 
-### F6-02 · Struttura per torneo
+### F6-02 · Torneo scelto all'avvio e struttura per torneo
 
 - **Stato:** da fare
 - **Tipo:** fare
-- **Obiettivo:** passo 3 di `multi_tournament.md`.
-- **Leggere prima:** `multi_tournament.md`, `tournament_ui.md`.
-- **File:** `tournaments/index.ts`, `tournaments/dcup.ts` → `tournaments/dcup/config.ts`, `tournaments/dcup/public/`, `Dockerfile`, `app/layout.tsx`.
-- **Fatto quando:** `TournamentConfig` ha `id` e `features`; la configurazione del DCup è in `tournaments/dcup/config.ts`; loghi, icone e `.well-known/assetlinks.json` stanno in `tournaments/<id>/public` e vengono copiati in `public/` nella build Docker; l'`<html>` ha `data-tournament`; il DCup si comporta esattamente come prima.
+- **Obiettivo:** una sola immagine per tutti i tornei, con il torneo scelto dalla variabile `TOURNAMENT` all'avvio del container (ADR-0011), e una cartella per torneo.
+- **Leggere prima:** ADR-0011, `multi_tournament.md`, `tournament_ui.md`; guide di Next su manifest, metadati e variabili d'ambiente in `node_modules/next/dist/docs/`.
+- **File:** `tournaments/index.ts`, `tournaments/dcup.ts` → `tournaments/dcup/config.ts`, `tournaments/dcup/public/`, `lib/site.ts`, `app/manifest.ts`, `app/layout.tsx`, gli 8 componenti client che importano la configurazione del torneo, `Dockerfile`.
+- **Fatto quando:**
+  - il torneo si legge da `TOURNAMENT` all'avvio; la build non legge nessuna variabile specifica del torneo (né `NEXT_PUBLIC_TOURNAMENT`, né `NEXTAUTH_URL` o `NEXT_PUBLIC_APP_URL` come argomenti di build);
+  - `TournamentConfig` ha `id` e `features`; la configurazione del DCup è in `tournaments/dcup/config.ts`;
+  - manifest, metadati e colori del tema sono prodotti dal server per il torneo scelto; i componenti client ricevono la configurazione dal server;
+  - loghi, icone e `.well-known/assetlinks.json` stanno in `tournaments/<id>/public` e sono serviti in base al torneo scelto;
+  - l'`<html>` ha `data-tournament`;
+  - la stessa immagine avviata con `TOURNAMENT=dcup` si comporta esattamente come oggi, compresa l'app negli store (manifest e icone).
 - **Dipende da:** —
 
 ### F6-03 · Sezione pallavolo configurabile per torneo
@@ -51,14 +57,18 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Fatto quando:** esiste un volume persistente per i file caricati dagli organizzatori (regolamento in PDF, F6-11), montato nel container dell'app e incluso negli eventuali backup; nomi dei container, porte, reti e volumi hanno un prefisso per torneo (oggi sono fissi: `fantadc-prod`, `fantadc-postgres-prod`, porta 4567, volume esterno `dcup-prod_pgdata_prod`); due tornei possono girare sullo stesso server; il DCup in produzione continua a usare il suo volume senza perdita di dati (procedura di passaggio scritta e provata in DEV).
 - **Dipende da:** —
 
-### F6-06 · Un job Jenkins per torneo
+### F6-06 · Build unica e deploy per torneo
 
 - **Stato:** da fare
 - **Tipo:** fare
-- **Obiettivo:** passo 4 di `multi_tournament.md`, parte Jenkins.
-- **File:** `Jenkinsfile`, `Jenkinsfile_prod`, configurazione dei job su Jenkins.
-- **Fatto quando:** ogni torneo ha il suo job con `NEXT_PUBLIC_TOURNAMENT` e credenziali proprie (file env, admin, chiavi VAPID; poi quelle degli storage di F3-12); il job del DCup produce la stessa immagine di prima.
-- **Dipende da:** F6-05
+- **Obiettivo:** un solo job che costruisce l'immagine e un deploy per torneo con la versione dell'immagine fissata (ADR-0011).
+- **File:** `Jenkinsfile`, `Jenkinsfile_prod`, configurazione dei job su Jenkins, `docker-compose*.yml`.
+- **Fatto quando:**
+  - un job costruisce e pubblica l'immagine con un tag di versione;
+  - ogni torneo ha il suo deploy con `TOURNAMENT`, la versione dell'immagine da usare e le sue credenziali (file env, admin, chiavi VAPID; poi quelle degli storage di F3-12);
+  - si può aggiornare un torneo senza toccare l'altro e tornare alla versione precedente di un solo torneo;
+  - la procedura di aggiornamento e di ritorno indietro è scritta in `multi_tournament.md`.
+- **Dipende da:** F6-02, F6-05
 
 ### F6-07 · Nginx per il dominio del secondo torneo
 

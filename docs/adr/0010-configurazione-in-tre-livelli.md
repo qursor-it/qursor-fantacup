@@ -1,6 +1,6 @@
 # 0010. Configurazione del torneo in tre livelli
 
-- **Stato:** accettato
+- **Stato:** accettato; il livello 2 non è più "scelto al build" ma all'avvio, vedi ADR-0011
 - **Data:** 2026-11-06
 
 ## Contesto

@@ -12,7 +12,7 @@ Qui si registra **perché** il progetto è fatto così: il contesto, la scelta, 
 
 | # | Decisione | Stato |
 |---|---|---|
-| [0001](0001-installazione-per-torneo.md) | Un'installazione per torneo | accettato |
+| [0001](0001-installazione-per-torneo.md) | Un'installazione per torneo | accettato, in parte superato da 0011 |
 | [0002](0002-stories-in-next.md) | Stories gestite da Next, senza servizio separato | accettato |
 | [0003](0003-storage-r2-e-archivio-hetzner.md) | R2 per le stories attive, Hetzner come archivio | accettato |
 | [0004](0004-caricamento-diretto-con-url-firmato.md) | Caricamento diretto con URL firmato e story "in caricamento" | accettato |
@@ -21,7 +21,8 @@ Qui si registra **perché** il progetto è fatto così: il contesto, la scelta, 
 | [0007](0007-tempo-reale-con-sse.md) | Aggiornamenti in tempo reale con SSE | accettato |
 | [0008](0008-cache-components-prima-del-tempo-reale.md) | Migrazione a Cache Components prima del tempo reale | accettato |
 | [0009](0009-job-con-timer-interno.md) | Job periodici con timer interno a Next | accettato |
-| [0010](0010-configurazione-in-tre-livelli.md) | Configurazione del torneo in tre livelli | accettato |
+| [0010](0010-configurazione-in-tre-livelli.md) | Configurazione del torneo in tre livelli | accettato, modificato da 0011 |
+| [0011](0011-torneo-scelto-all-avvio.md) | Torneo scelto all'avvio, con un'immagine unica | accettato |
 
 ## Modello
 

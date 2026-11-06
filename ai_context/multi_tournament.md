@@ -21,7 +21,7 @@ Il perché e le alternative scartate (multi-tenant, motore condiviso con due app
 
 ### Configurazione per torneo
 
-- Il torneo si sceglie al momento della build con `NEXT_PUBLIC_TOURNAMENT`; se manca vale `dcup`. Si sceglie al build, non all'avvio, perché nome, colori e manifest finiscono anche nel codice del browser. Ogni torneo ha quindi la sua immagine Docker, costruita dallo stesso commit.
+- Oggi il torneo si sceglie al momento della build con `NEXT_PUBLIC_TOURNAMENT`; se manca vale `dcup`. Ogni torneo ha quindi la sua immagine Docker, costruita dallo stesso commit. **Deciso di passare** a un'immagine unica con il torneo scelto all'avvio del container (`docs/adr/0011-torneo-scelto-all-avvio.md`, task F6-02 e F6-06): quando sarà fatto, questa sezione va riscritta.
 - `tournaments/index.ts`:
   - contiene il tipo `TournamentConfig`, che ogni torneo deve rispettare per intero, e l'elenco dei tornei;
   - espone `tournament`;
