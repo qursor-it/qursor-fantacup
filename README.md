@@ -2,6 +2,13 @@
 
 Fantadc è una web app Next.js per gestire un fantacalcio legato a un torneo locale.
 
+## Documentazione
+
+* come funziona il progetto: [`ai_context/`](ai_context/README.md)
+* decisioni architetturali: [`docs/adr/`](docs/adr/README.md)
+* cosa resta da fare: [`docs/roadmap/`](docs/roadmap/README.md)
+* come tenerla aggiornata: [`docs/README.md`](docs/README.md)
+
 ## Più tornei
 
 Lo stesso codice serve più tornei: ogni torneo ha la sua installazione (database, dominio, job Jenkins, app negli store) e si sceglie al build con `NEXT_PUBLIC_TOURNAMENT` (default `dcup`). La configurazione di ogni torneo sta in `tournaments/`.

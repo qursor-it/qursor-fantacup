@@ -7,6 +7,7 @@ Altri documenti:
 
 * `docs/adr/`: le decisioni architetturali, con motivazioni e alternative scartate (il perché).
 * `docs/roadmap/`: le attività pianificate, divise in fasi, comprese le decisioni ancora da prendere (cosa resta da fare).
+* `docs/README.md`: come è organizzata la documentazione e come tenerla aggiornata.
 
 ## Ordine di lettura consigliato
 

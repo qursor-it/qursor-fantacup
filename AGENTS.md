@@ -11,7 +11,16 @@ Before doing substantial analysis, planning, or implementation work on this repo
 1. `ai_context/README.md`
 2. the context files referenced there, following the documented reading order
 
-Treat the files in `ai_context/` as the shared project context for product scope, domain rules, roles, user flows, database assumptions, technical baseline, and open questions.
+Treat the files in `ai_context/` as the shared project context for product scope, domain rules, roles, user flows, database assumptions and technical baseline.
+
+# Documentation
+
+How the documentation is organized and how to keep it up to date is described in `docs/README.md`. In short:
+
+* `ai_context/` = how the project works today; `docs/adr/` = why (decisions and rejected alternatives); `docs/roadmap/` = what is left to do, including decisions still to be made.
+* Each piece of information lives in one place only: `ai_context/` links to ADRs instead of repeating reasons.
+* Do not create plans, handoffs or TODO lists elsewhere: add tasks to `docs/roadmap/`.
+* Write these files in plain Italian, like the existing ones.
 
 # Working Rules For This Repo
 
