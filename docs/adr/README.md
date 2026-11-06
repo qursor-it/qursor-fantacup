@@ -21,6 +21,7 @@ Qui si registra **perché** il progetto è fatto così: il contesto, la scelta, 
 | [0007](0007-tempo-reale-con-sse.md) | Aggiornamenti in tempo reale con SSE | accettato |
 | [0008](0008-cache-components-prima-del-tempo-reale.md) | Migrazione a Cache Components prima del tempo reale | accettato |
 | [0009](0009-job-con-timer-interno.md) | Job periodici con timer interno a Next | accettato |
+| [0010](0010-configurazione-in-tre-livelli.md) | Configurazione del torneo in tre livelli | accettato |
 
 ## Modello
 

@@ -4,7 +4,7 @@ Decisione: `docs/adr/0001-installazione-per-torneo.md`. Funzionamento: `ai_conte
 
 Obiettivo della fase: portare in produzione il secondo torneo, che parte a breve, sullo stesso codice. Il primo passo è fatto: identità e regole del DCup sono in `tournaments/dcup.ts`, scelto al build con `NEXT_PUBLIC_TOURNAMENT`.
 
-Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono flag per spegnerli. Le loro regole numeriche (limiti, durate, dimensioni dei file) stanno nella configurazione del torneo come le altre regole, con gli stessi valori per tutti finché non serve altro (vedi F3-11).
+Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono flag per spegnerli. Le loro regole numeriche (limiti, durate, dimensioni dei file) diventeranno modificabili dagli organizzatori (F7, ADR-0010); fino ad allora stanno nella configurazione del torneo, con gli stessi valori per tutti.
 
 ### F6-01 · Raccogliere i dati del secondo torneo
 
@@ -69,15 +69,14 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Fatto quando:** il blocco del nuovo dominio è nella repository infrastructure, con certificato, `proxy_buffering off` e le stesse impostazioni decise per fantadc in F2-01.
 - **Dipende da:** F6-01, F2-01
 
-### F6-08 · Regolamento per torneo
+### F6-08 · Regolamento in PDF caricato dagli organizzatori
 
 - **Stato:** da fare
 - **Tipo:** fare
-- **Obiettivo:** il testo del regolamento oggi è scritto a mano per il DCup; probabilmente è la prima pagina con una versione per torneo.
-- **Leggere prima:** `tournament_ui.md` (Stessa pagina, versione diversa).
-- **File:** `app/(public)/regolamento/`, `tournaments/<id>/pages/`.
-- **Fatto quando:** ogni torneo ha il suo regolamento; i valori (punti, capitano, finestra MVP) sono letti dalla configurazione dove possibile.
-- **Dipende da:** F6-02, F6-01
+- **Obiettivo:** ogni torneo ha il suo regolamento, caricato come PDF dagli organizzatori nella pagina `/admin/impostazioni` (ADR-0010). Serve alla partenza della FacolCup.
+- **File:** `app/(admin)/admin/impostazioni/`, `app/(public)/regolamento/`, dove salvare il file (vedi F6-11).
+- **Fatto quando:** un admin carica e sostituisce il PDF (solo PDF, dimensione massima definita); la pagina `/regolamento` lo mostra o lo fa scaricare in modo leggibile da telefono; la sostituzione va nell'audit log; il DCup ha il suo regolamento come PDF o come previsto da F6-11.
+- **Dipende da:** F6-11
 
 ### F6-10 · URL della sezione pallavolo
 
@@ -86,6 +85,16 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Obiettivo:** oggi gli URL sono `/greenvolley/*`. Per la FacolCup un indirizzo con "greenvolley" sarebbe strano.
 - **Opzioni:** URL generici uguali per tutti (per esempio `/volley/*`, con redirect da `/greenvolley/*` per non rompere i link già condivisi del DCup); oppure URL presi dalla configurazione del torneo (`/greenvolley/*` per il DCup, `/facolvolley/*` per la FacolCup).
 - **Fatto quando:** la scelta è scritta in `multi_tournament.md` (o in un ADR, se cambia la struttura delle rotte).
+- **Dipende da:** —
+
+### F6-11 · Regolamento: dove salvarlo e cosa fare del testo attuale
+
+- **Stato:** da fare
+- **Tipo:** decidere
+- **Obiettivo:** il PDF va salvato da qualche parte prima che esistano gli storage delle stories (F3-12), e oggi il DCup ha un regolamento in HTML scritto nel codice.
+- **Opzioni per il salvataggio:** nel database (un file di pochi MB, nessuna dipendenza nuova); su R2 anticipando una parte di F3-12; su un volume del container.
+- **Da decidere anche:** la pagina HTML attuale del DCup viene sostituita dal PDF o resta accanto; il PDF si mostra dentro la pagina o si apre/scarica.
+- **Fatto quando:** le scelte sono in `multi_tournament.md`.
 - **Dipende da:** —
 
 ### F6-09 · Secondo torneo in produzione

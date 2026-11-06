@@ -71,7 +71,9 @@ Le attività ancora da fare sono task della fase F6 in `docs/roadmap/06-multi-to
 1. **Fatto (`35d5803`):** configurazione per torneo, con identità e regole spostate in `tournaments/dcup.ts`. Il comportamento del DCup è invariato.
 2. **Da fare:** colori del marchio dalla configurazione (F6-04), struttura per torneo e sezioni attivabili (F6-02, F6-03), Docker Compose e Jenkins per torneo (F6-05, F6-06), nginx (F6-07), regolamento per torneo (F6-08), secondo torneo in produzione (F6-09).
 
-Stories e aggiornamenti in tempo reale valgono per tutti i tornei; le loro regole numeriche stanno nella configurazione del torneo.
+Stories e aggiornamenti in tempo reale valgono per tutti i tornei.
+
+La configurazione è divisa in tre livelli (`docs/adr/0010-configurazione-in-tre-livelli.md`): infrastruttura nelle variabili d'ambiente; identità (nome, colori, logo, immagini, sezione pallavolo) in `tournaments/<id>`; regole e contenuti (regole del fantacalcio, limiti delle stories, regolamento in PDF) nel database, modificabili dagli organizzatori da `/admin/impostazioni` (fase F7). Finché F7 non è fatta, le regole restano in `tournaments/<id>`.
 
 ## Secondo torneo: FacolCup
 
@@ -84,6 +86,6 @@ Ancora da raccogliere: dominio, date, regole del fantacalcio (se diverse dal DCu
 
 ## Ancora specifico del DCup
 
-- **Regolamento:** il testo della pagina è scritto a mano. Probabilmente sarà la prima pagina con una versione per torneo.
+- **Regolamento:** il testo della pagina è scritto a mano. Diventerà un PDF caricato dagli organizzatori (F6-08, F6-11).
 - **Green volley:** nome, colore (`#3DD907`, classe `.gv-theme`), logo e URL (`/greenvolley/*`, `/admin/greenvolley/*`) sono scritti per il DCup in una quarantina di file. I modelli dati (`Volley*`) sono già generici. Da rendere configurabili in F6-03.
 - **Colori:** sono scritti a mano nelle pagine finché non si fa F6-04.

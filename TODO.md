@@ -8,5 +8,6 @@ La roadmap è in [`docs/roadmap/`](docs/roadmap/README.md), divisa in fasi con t
 4. [F4 · Residui degli audit del 2026-11-03](docs/roadmap/04-audit.md)
 5. [F5 · Decisioni di prodotto e altro](docs/roadmap/05-prodotto.md)
 6. [F6 · Multi-torneo](docs/roadmap/06-multi-torneo.md), in parallelo a F1: il secondo torneo parte a breve
+7. [F7 · Configuratore per gli organizzatori](docs/roadmap/07-configuratore.md), dopo la partenza della FacolCup
 
 Le decisioni prese sono in [`docs/adr/`](docs/adr/README.md); il funzionamento del progetto in [`ai_context/`](ai_context/README.md).
