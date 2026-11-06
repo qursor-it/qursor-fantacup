@@ -45,6 +45,4 @@ Le configurazioni nginx dei siti Qursor sono nella repository `qursor-it/qursor-
 
 ## Punti ancora aperti
 
-- verificare che la compressione delle risposte di Next non trattenga gli eventi del flusso SSE
-- quali eventi esistono oltre a "live cambiata" e "nuova story", e su quali pagine il browser si collega (solo homepage o tutta l'app)
-- limite di connessioni per IP o per utente, per evitare abusi
+Vedi `docs/roadmap/02-tempo-reale.md` (F2-02 per eventi, pagine e limiti; F2-04 per la compressione).

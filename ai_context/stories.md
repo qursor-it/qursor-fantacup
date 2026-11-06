@@ -116,14 +116,4 @@ Li esegue il backend Next, sulla stessa macchina, con un timer interno al proces
 
 ## Punti ancora aperti
 
-- dimensione massima dei file
-- quali emoji sono disponibili come reazioni
-- testo esatto della dichiarazione di non responsabilità, che ora deve dire anche che le stories sono visibili a chiunque, anche senza account, e vengono conservate nell'archivio e possono essere riusate dall'organizzazione; va riportato anche in regolamento e pagina privacy
-- l'autore può cancellare le proprie stories? Nei requisiti oggi non c'è; servirebbe anche per i doppioni dovuti a una conferma persa
-- condivisione fuori dall'app di un link alla pagina dell'app con le stories (non al file): cosa si condivide (una story, le stories di una persona, la sezione), chi può condividere, anteprima su WhatsApp (story o logo del torneo), cosa vede chi apre il link dopo la scadenza
-- identificativo anonimo degli ospiti: dove conservarlo (cookie o storage del browser) e se serve il consenso o una menzione nella pagina privacy. Oggi l'app non salva nulla del genere (`/api/track` conta solo le visite totali per giorno)
-- download degli admin dall'archivio: URL firmati uno per uno o uno zip preparato dal server
-- quando cancellare definitivamente l'archivio (fine torneo, dopo qualche mese)
-- story eliminata dalla moderazione mentre il job la sta copiando: evitare che "risorga" su Hetzner
-- musica del Media Composer: solo brani con una licenza che ne permetta l'uso (verificare attribuzione e usi consentiti); cosa fare con i video dalla galleria che hanno già una canzone protetta nell'audio
-- storage per lo sviluppo locale (MinIO o un bucket R2 di test)
+Le decisioni ancora da prendere sono task di tipo "decidere" in `docs/roadmap/03-stories.md` (F3-01 … F3-09).
