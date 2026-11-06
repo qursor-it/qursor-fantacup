@@ -60,7 +60,6 @@ Fuori scope per ora:
 * pagamenti
 * ruoli complessi oltre user e admin
 * reset password self service
-* live scoring in tempo reale
 
 ## Assunzioni correnti
 

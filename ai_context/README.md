@@ -16,6 +16,7 @@ Non e un planning operativo: serve a descrivere prodotto, dominio, regole, fluss
    - `tournament_ui.md`
    - `stories.md`
    - `media_composer.md`
+   - `realtime.md`
 8. `open_questions.md`
 9. `open_questions/decisioni_core.md`
 
@@ -64,6 +65,10 @@ Decisione sulla sezione stories (foto e video in stile Instagram): chi pubblica,
 ### `media_composer.md`
 
 Editor di foto e video lato client (pubblicazione solo simulata): architettura, codifica, limiti dei browser, come aggiungere sticker e musica, come sostituire il mock, checklist di test manuale.
+
+### `realtime.md`
+
+Aggiornamenti in tempo reale dal server al browser (gol in diretta, nuove stories): SSE con segnale più richiesta, cache ricalcolata prima del segnale, heartbeat, recupero al rientro della PWA, note su nginx.
 
 ### `open_questions.md`
 
