@@ -82,6 +82,9 @@ Dati raccolti finora (F6-01 in `docs/roadmap/06-multi-torneo.md`):
 - **Nome:** FacolCup. Id proposto: `facolcup`.
 - **Pallavolo:** ha la sua sezione di pallavolo, **FacolVolley**, equivalente a GreenVolley del DCup. La sezione volley quindi non è solo da accendere o spegnere: nome, colori e logo cambiano per torneo.
 
+- **URL della sezione pallavolo:** configurabili per torneo (`/greenvolley/*` per il DCup, per esempio `/facolvolley/*` per la FacolCup), vedi F6-10.
+- **Regolamento:** PDF caricato dagli organizzatori e salvato su un volume Docker persistente; la pagina mostra un pulsante che lo apre. Sostituisce anche la pagina HTML del DCup (F6-08, F6-11).
+
 Ancora da raccogliere: dominio, date, regole del fantacalcio (se diverse dal DCup), colori, logo e icone, differenze nel regolamento, dati dell'app negli store, regole della pallavolo se diverse.
 
 ## Ancora specifico del DCup

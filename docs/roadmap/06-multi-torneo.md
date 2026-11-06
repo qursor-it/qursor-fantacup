@@ -30,7 +30,7 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Tipo:** fare
 - **Obiettivo:** la sezione pallavolo esiste in entrambi i tornei con identità diversa: GreenVolley nel DCup, FacolVolley nella FacolCup. Oggi nome, colore (`#3DD907`, `.gv-theme`), logo e URL sono scritti per il DCup in circa 40 file; i modelli dati (`Volley*`) sono già generici.
 - **File:** `tournaments/<id>/config.ts` (blocco della sezione volley: attiva sì/no, nome, colori, logo), `app/(public)/greenvolley/**`, `app/(admin)/admin/greenvolley/**`, `components/gv-theme-wrapper.tsx`, `app/globals.css`, menu, `proxy.ts`.
-- **Fatto quando:** nome, colori e logo della sezione arrivano dalla configurazione; gli URL seguono la scelta di F6-10; con la sezione spenta le pagine rispondono 404 e spariscono dai menu; il DCup appare identico a prima.
+- **Fatto quando:** nome, colori, logo e prefisso degli URL della sezione arrivano dalla configurazione; le pagine pubbliche e admin stanno in un'unica rotta interna raggiunta tramite `proxy.ts` (F6-10); i link interni usano il prefisso configurato; con la sezione spenta le pagine rispondono 404 e spariscono dai menu; il DCup appare identico a prima.
 - **Dipende da:** F6-02, F6-10
 
 ### F6-04 · Colori del marchio dalla configurazione
@@ -48,7 +48,7 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Tipo:** fare
 - **Obiettivo:** passo 4 di `multi_tournament.md`, parte Compose.
 - **File:** `docker-compose.yml`, `docker-compose.prod.yml`, `.env.docker.example`.
-- **Fatto quando:** nomi dei container, porte, reti e volumi hanno un prefisso per torneo (oggi sono fissi: `fantadc-prod`, `fantadc-postgres-prod`, porta 4567, volume esterno `dcup-prod_pgdata_prod`); due tornei possono girare sullo stesso server; il DCup in produzione continua a usare il suo volume senza perdita di dati (procedura di passaggio scritta e provata in DEV).
+- **Fatto quando:** esiste un volume persistente per i file caricati dagli organizzatori (regolamento in PDF, F6-11), montato nel container dell'app e incluso negli eventuali backup; nomi dei container, porte, reti e volumi hanno un prefisso per torneo (oggi sono fissi: `fantadc-prod`, `fantadc-postgres-prod`, porta 4567, volume esterno `dcup-prod_pgdata_prod`); due tornei possono girare sullo stesso server; il DCup in produzione continua a usare il suo volume senza perdita di dati (procedura di passaggio scritta e provata in DEV).
 - **Dipende da:** —
 
 ### F6-06 · Un job Jenkins per torneo
@@ -74,27 +74,29 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Stato:** da fare
 - **Tipo:** fare
 - **Obiettivo:** ogni torneo ha il suo regolamento, caricato come PDF dagli organizzatori nella pagina `/admin/impostazioni` (ADR-0010). Serve alla partenza della FacolCup.
-- **File:** `app/(admin)/admin/impostazioni/`, `app/(public)/regolamento/`, dove salvare il file (vedi F6-11).
-- **Fatto quando:** un admin carica e sostituisce il PDF (solo PDF, dimensione massima definita); la pagina `/regolamento` lo mostra o lo fa scaricare in modo leggibile da telefono; la sostituzione va nell'audit log; il DCup ha il suo regolamento come PDF o come previsto da F6-11.
-- **Dipende da:** F6-11
+- **File:** `app/(admin)/admin/impostazioni/`, `app/(public)/regolamento/`, percorso del volume dei file caricati (F6-05, F6-11).
+- **Fatto quando:** un admin carica e sostituisce il PDF (solo PDF, dimensione massima definita) salvato sul volume persistente; la pagina `/regolamento` mostra un pulsante che lo apre; senza PDF caricato la pagina lo dice; la sostituzione va nell'audit log; la pagina HTML del DCup è rimossa e il suo regolamento è caricato come PDF.
+- **Dipende da:** F6-05, F6-11
 
 ### F6-10 · URL della sezione pallavolo
 
-- **Stato:** da fare
+- **Stato:** fatto (2026-11-06)
 - **Tipo:** decidere
 - **Obiettivo:** oggi gli URL sono `/greenvolley/*`. Per la FacolCup un indirizzo con "greenvolley" sarebbe strano.
 - **Opzioni:** URL generici uguali per tutti (per esempio `/volley/*`, con redirect da `/greenvolley/*` per non rompere i link già condivisi del DCup); oppure URL presi dalla configurazione del torneo (`/greenvolley/*` per il DCup, `/facolvolley/*` per la FacolCup).
 - **Fatto quando:** la scelta è scritta in `multi_tournament.md` (o in un ADR, se cambia la struttura delle rotte).
+- **Decisione:** URL configurabile per torneo (`/greenvolley/*` per il DCup, per esempio `/facolvolley/*` per la FacolCup). Il valore sta nella configurazione del torneo insieme al resto dell'identità della sezione (ADR-0010, livello 2). Le pagine restano in un'unica rotta interna e `proxy.ts` traduce l'URL pubblico configurato verso quella rotta; gli altri prefissi rispondono 404.
 - **Dipende da:** —
 
 ### F6-11 · Regolamento: dove salvarlo e cosa fare del testo attuale
 
-- **Stato:** da fare
+- **Stato:** fatto (2026-11-06)
 - **Tipo:** decidere
 - **Obiettivo:** il PDF va salvato da qualche parte prima che esistano gli storage delle stories (F3-12), e oggi il DCup ha un regolamento in HTML scritto nel codice.
 - **Opzioni per il salvataggio:** nel database (un file di pochi MB, nessuna dipendenza nuova); su R2 anticipando una parte di F3-12; su un volume del container.
 - **Da decidere anche:** la pagina HTML attuale del DCup viene sostituita dal PDF o resta accanto; il PDF si mostra dentro la pagina o si apre/scarica.
 - **Fatto quando:** le scelte sono in `multi_tournament.md`.
+- **Decisione:** il PDF si salva su un **volume Docker persistente** montato nel container dell'app (uno per torneo, vedi F6-05): il file system del container da solo si perde a ogni deploy. La pagina HTML attuale del DCup viene sostituita dal PDF, così c'è un solo meccanismo per tutti i tornei. La pagina `/regolamento` mostra un pulsante che apre il PDF, invece di incorporarlo (leggibilità da telefono).
 - **Dipende da:** —
 
 ### F6-09 · Secondo torneo in produzione

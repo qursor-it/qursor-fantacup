@@ -6,11 +6,12 @@ Obiettivo della fase: gli organizzatori di ciascun torneo modificano da soli, da
 
 ### F7-01 · Quando un torneo "è iniziato"
 
-- **Stato:** da fare
+- **Stato:** fatto (2026-11-06)
 - **Tipo:** decidere
 - **Obiettivo:** la condizione dopo cui le regole che toccano i punteggi non si possono più cambiare.
 - **Opzioni:** prima partita conclusa; prima squadra fanta creata; data di inizio impostata dagli organizzatori; blocco manuale.
-- **Fatto quando:** la condizione è in `domain_rules.md`.
+- **Fatto quando:** la condizione è decisa; va scritta in `domain_rules.md` insieme all'implementazione (F7-03).
+- **Decisione:** il torneo è iniziato quando esiste almeno una partita conclusa. Da quel momento le regole che toccano i punteggi sono bloccate.
 - **Dipende da:** —
 
 ### F7-02 · Regole nel database
