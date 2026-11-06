@@ -14,6 +14,7 @@ Guide di riferimento (in `node_modules/next/dist/docs/01-app/`):
 - **Stato:** da fare
 - **Tipo:** verificare
 - **Obiettivo:** avere numeri di partenza da confrontare dopo la migrazione.
+- **Chi:** un agente in locale sul PC di sviluppo (servono Docker per il Postgres di audit, la build di produzione e Chrome per le misure da mobile). Vale anche per F1-07.
 - **Leggere prima:** `docs/audit-performance-2026-11-03.md` (sezione Metodo).
 - **File:** `.perf-audit/` (locale, non versionato: `measure.mjs`, `load.mjs`, `seed-load.ts`); risultati in `docs/perf/2026-11-cache-components-prima.md`.
 - **Fatto quando:**
