@@ -59,7 +59,7 @@ Guida pratica per pagine presenti in un solo torneo, versioni di pagina per torn
 
 ### `stories.md`
 
-Decisione sulla sezione stories (foto e video in stile Instagram): chi pubblica, limiti, moderazione admin, ruolo caposquadra e servizio Quarkus dedicato.
+Decisione sulla sezione stories (foto e video in stile Instagram): chi pubblica, limiti, moderazione admin, ruolo caposquadra e backend in Next.
 
 ### `media_composer.md`
 

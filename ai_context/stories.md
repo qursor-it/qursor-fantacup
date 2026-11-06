@@ -25,25 +25,21 @@ Decisione del 2026-11-04. Sezione di stories in stile Instagram: contenuti brevi
 - Non ha permessi admin: in più rispetto a un utente può solo pubblicare stories con foto e video.
 - Non va confuso con il capitano della rosa fantasy, che è un giocatore reale scelto dall'utente e non un account.
 
-## Decisione tecnica: servizio Quarkus dedicato
+## Decisione tecnica: tutto in Next.js
 
-Le stories sono un servizio Quarkus separato. Next.js resta per tutto il resto e ospita anche l'interfaccia delle stories.
+Le stories, interfaccia e backend, sono gestite da Next.js come il resto dell'app. Decisione aggiornata il 2026-11-06: il servizio Quarkus separato previsto in precedenza è stato rimosso, insieme al token firmato e al JWKS che servivano solo a lui.
 
 Motivi:
-- il responsabile del progetto è più rapido su Quarkus;
-- la compressione dei video (ffmpeg) consuma molta CPU e va comunque tenuta fuori dal server web;
-- migrare l'intero backend a Quarkus è stato valutato e scartato: costerebbe settimane per tornare alle funzioni attuali, mentre l'organizzazione del codice si migliora restando in TypeScript.
+- la compressione dei video non serve sul server: il Media Composer (`media_composer.md`) esporta già nel browser un MP4 compresso di al massimo 15 secondi;
+- un secondo servizio (JVM, deploy, autenticazione tra servizi) costava più di quanto rendeva.
 
 Struttura prevista:
-- **Editor lato client:** il file da caricare e prodotto dal Media Composer (`media_composer.md`), che oggi pubblica solo in modo simulato.
-- **Storage a oggetti** (MinIO nel `docker-compose`, o S3/R2). Il browser carica il file direttamente tramite URL firmato: il file non passa da Next.
-- **Servizio Quarkus:** firma gli URL, salva i dati delle stories, applica i permessi e i limiti, gestisce la coda di elaborazione con ffmpeg (compressione, anteprima), la scadenza e le eliminazioni.
-- **Database:** stesso Postgres del torneo, ma in uno schema separato (`stories`) con migration Flyway, per non scontrarsi con Prisma.
-- **Riproduzione:** MP4 servito con richieste per intervalli di byte (range request). HLS non serve per contenuti brevi.
-- **Auth (fatta):** `GET /api/stories/token` di Next restituisce all'utente loggato un JWT RS256 valido 5 minuti (`iss` `qursor-fantacup`, `aud` `stories`, `sub` id utente, `upn` email, `groups` ruolo). Il browser lo manda a Quarkus come `Authorization: Bearer`; Quarkus lo verifica (smallrye-jwt) con la chiave pubblica che scarica dal JWKS di Next (`GET /api/stories/jwks`, URL in `STORIES_JWKS_URL`) e sa chi chiama. L'unico segreto è `STORIES_JWT_PRIVATE_KEY` in Next; Quarkus non ha chiavi da configurare. Quando esisterà il ruolo caposquadra andrà aggiunta al token la sua squadra. Istruzioni in `quarkus/README.md`.
-- **Più tornei:** il servizio segue la regola di `multi_tournament.md`, un'istanza per torneo con il suo database e il suo storage.
-
-Prima di scegliere va verificato che il server di produzione abbia RAM e CPU sufficienti per JVM e ffmpeg.
+- **Editor lato client:** il file da caricare è prodotto dal Media Composer, che oggi pubblica solo in modo simulato.
+- **Storage a oggetti** (MinIO nel `docker-compose`, oppure S3 o R2). Next genera un URL firmato e il browser carica il file direttamente nello storage, senza passare da Next.
+- **Next.js (server action o route):** firma gli URL, salva i dati delle stories con Prisma, applica permessi e limiti (anche sul server, non solo nel client), e gestisce scadenza ed eliminazioni. Usa la sessione esistente, quindi non serve un'autenticazione separata.
+- **Database:** lo stesso Postgres del torneo, con modelli Prisma e migration come il resto.
+- **Riproduzione:** l'MP4 viene servito dallo storage con richieste per intervalli di byte (range request). HLS non serve per contenuti brevi.
+- **Più tornei:** si segue la regola di `multi_tournament.md`, con un'istanza per torneo che ha il suo database e il suo storage.
 
 ## Punti ancora aperti
 

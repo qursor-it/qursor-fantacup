@@ -6,7 +6,7 @@ Editor di foto e video che gira interamente nel browser. Produce il file da pubb
 
 * Editor lato client: ritaglio, rotazione, filtri (foto), testo, sticker, trim e musica (video).
 * Pubblicazione **mock**: nessuna persistenza, nessun database, nessun file lascia il dispositivo (all'endpoint mock arrivano solo i metadati).
-* Indipendente dall'immagine story della squadra (`app/api/story/[teamId]`) e dal futuro servizio Quarkus descritto in `stories.md`.
+* Indipendente dall'immagine story della squadra (`app/api/story/[teamId]`) e dal futuro backend delle stories descritto in `stories.md`.
 * Il file esportato e quello che in futuro verra caricato con URL firmato. Il punto di sostituzione e `MediaUploadService` (vedi "Sostituire il mock").
 * Permessi: in `stories.md` gli utenti registrati pubblicano solo foto. Il composer permette il video a tutti perche la pubblicazione e simulata; il servizio reale deve far rispettare i ruoli.
 
@@ -85,7 +85,7 @@ Mettere il file in `public/music/` e aggiungere in `MUSIC_CATALOG` (`lib/media/m
 
 ## Sostituire il mock
 
-Implementare `MediaUploadService` (`lib/media/upload.ts`): per esempio chiedere a Quarkus un URL firmato e fare un `PUT` del file con `XMLHttpRequest` per avere il progresso reale. Il servizio si passa con la prop `uploadService` di `MediaComposer`. Poi si puo rimuovere `app/api/media/mock-upload` e `lib/media/mock-upload.ts`.
+Implementare `MediaUploadService` (`lib/media/upload.ts`): per esempio chiedere a Next (server action o route) un URL firmato e fare un `PUT` del file con `XMLHttpRequest` per avere il progresso reale. Il servizio si passa con la prop `uploadService` di `MediaComposer`. Poi si puo rimuovere `app/api/media/mock-upload` e `lib/media/mock-upload.ts`.
 
 ## Endpoint mock
 

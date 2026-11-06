@@ -25,18 +25,17 @@ Checklist completa in `ai_context/media_composer.md` ("Checklist manuale"). Mai 
 ## Decisioni aperte
 
 - [ ] Galleria oltre 30 s: oggi viene rifiutato. Alternativa: aprirlo e far scegliere i 15 s dentro una finestra di 30 s.
-- [ ] Dimensione massima del file esportato per il servizio reale (proposta: 10 MB foto, 30 MB video), da controllare sia nel client sia in Quarkus. Aperto anche in `stories.md`.
-- [ ] Ruoli: oggi chiunque può creare video; da `stories.md` l'utente registrato pubblica solo foto. Da far rispettare in Quarkus ed eventualmente nella pagina.
+- [ ] Dimensione massima del file esportato per il servizio reale (proposta: 10 MB foto, 30 MB video), da controllare sia nel client sia sul server. Aperto anche in `stories.md`.
+- [ ] Ruoli: oggi chiunque può creare video; da `stories.md` l'utente registrato pubblica solo foto. Da far rispettare sul server (Next) ed eventualmente nella pagina.
 - [ ] Testo della dichiarazione di non responsabilità da mostrare prima della pubblicazione.
 - [ ] Brani musicali reali con licenza (oggi 3 brani sintetici in `lib/media/music.ts`).
 
 ## Prossimi passi
 
-1. Upload reale: implementare `MediaUploadService` (`lib/media/upload.ts`) con URL firmato da Quarkus + `PUT` con progresso, passarlo via prop `uploadService`; poi rimuovere `app/api/media/mock-upload` e `lib/media/mock-upload.ts`.
+1. Upload reale: implementare `MediaUploadService` (`lib/media/upload.ts`) con URL firmato da Next + `PUT` con progresso, passarlo via prop `uploadService`; poi rimuovere `app/api/media/mock-upload` e `lib/media/mock-upload.ts`.
 2. Eventuale spostamento dell'export video in un Web Worker, se su telefoni lenti blocca l'interfaccia.
 
 ## Note
 
-- `lib/stories-token.test.ts` fallisce senza `quarkus/dev-keys/privateKey.pem` (file gitignored): non dipende dal composer.
 - Su desktop l'area utente è bloccata da `MobileOnlyGate`: per provare usare l'emulazione dispositivo di DevTools.
 - Dipendenze aggiunte: `mediabunny` e `@mediabunny/aac-encoder` 1.65.2 (MPL-2.0; l'encoder AAC contiene FFmpeg LGPL).

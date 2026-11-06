@@ -9,7 +9,7 @@ export interface MediaUploadResult {
   createdAt: string;
 }
 
-/** Contratto usato dal Media Composer: un servizio reale (es. URL firmato verso Quarkus) lo implementerà allo stesso modo. */
+/** Contratto usato dal Media Composer: un servizio reale (es. URL firmato generato da Next) lo implementerà allo stesso modo. */
 export interface MediaUploadService {
   upload(
     media: ExportedMedia,

@@ -12,4 +12,3 @@ node_modules
 Dockerfile*
 docker-compose*.yml
 Jenkinsfile*
-quarkus
