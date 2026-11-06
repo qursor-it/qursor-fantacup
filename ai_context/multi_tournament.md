@@ -73,8 +73,17 @@ Le attività ancora da fare sono task della fase F6 in `docs/roadmap/06-multi-to
 
 Stories e aggiornamenti in tempo reale valgono per tutti i tornei; le loro regole numeriche stanno nella configurazione del torneo.
 
+## Secondo torneo: FacolCup
+
+Dati raccolti finora (F6-01 in `docs/roadmap/06-multi-torneo.md`):
+
+- **Nome:** FacolCup. Id proposto: `facolcup`.
+- **Pallavolo:** ha la sua sezione di pallavolo, **FacolVolley**, equivalente a GreenVolley del DCup. La sezione volley quindi non è solo da accendere o spegnere: nome, colori e logo cambiano per torneo.
+
+Ancora da raccogliere: dominio, date, regole del fantacalcio (se diverse dal DCup), colori, logo e icone, differenze nel regolamento, dati dell'app negli store, regole della pallavolo se diverse.
+
 ## Ancora specifico del DCup
 
 - **Regolamento:** il testo della pagina è scritto a mano. Probabilmente sarà la prima pagina con una versione per torneo.
-- **Green volley:** è sempre attivo finché non c'è il flag di F6-03.
+- **Green volley:** nome, colore (`#3DD907`, classe `.gv-theme`), logo e URL (`/greenvolley/*`, `/admin/greenvolley/*`) sono scritti per il DCup in una quarantina di file. I modelli dati (`Volley*`) sono già generici. Da rendere configurabili in F6-03.
 - **Colori:** sono scritti a mano nelle pagine finché non si fa F6-04.

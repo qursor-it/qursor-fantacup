@@ -11,7 +11,7 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Stato:** da fare
 - **Tipo:** decidere
 - **Obiettivo:** sapere cosa cambia rispetto al DCup prima di toccare il codice.
-- **Fatto quando:** sono scritti in `multi_tournament.md`: id del torneo, nome, dominio, date, regole (portieri, giocatori di movimento, capitano, finestra MVP, punti MVP), sezioni attive (green volley sì o no), pagine con una versione propria (almeno il regolamento), colori, logo e icone, dati per l'app negli store.
+- **Fatto quando:** sono scritti in `multi_tournament.md` (sezione "Secondo torneo: FacolCup"): id del torneo, nome, dominio, date, regole (portieri, giocatori di movimento, capitano, finestra MVP, punti MVP), sezioni attive (green volley sì o no), pagine con una versione propria (almeno il regolamento), colori, logo e icone, dati per l'app negli store.
 - **Dipende da:** —
 
 ### F6-02 · Struttura per torneo
@@ -24,14 +24,14 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **Fatto quando:** `TournamentConfig` ha `id` e `features`; la configurazione del DCup è in `tournaments/dcup/config.ts`; loghi, icone e `.well-known/assetlinks.json` stanno in `tournaments/<id>/public` e vengono copiati in `public/` nella build Docker; l'`<html>` ha `data-tournament`; il DCup si comporta esattamente come prima.
 - **Dipende da:** —
 
-### F6-03 · Sezioni attivabili per torneo
+### F6-03 · Sezione pallavolo configurabile per torneo
 
 - **Stato:** da fare
 - **Tipo:** fare
-- **Obiettivo:** green volley (e le future sezioni esclusive) attivo solo dove previsto.
-- **File:** `proxy.ts`, menu pubblici e admin, pagine della sezione.
-- **Fatto quando:** con il flag spento, le pagine della sezione rispondono 404 e spariscono dai menu (pubblici e admin); con il flag acceso nulla cambia.
-- **Dipende da:** F6-02
+- **Obiettivo:** la sezione pallavolo esiste in entrambi i tornei con identità diversa: GreenVolley nel DCup, FacolVolley nella FacolCup. Oggi nome, colore (`#3DD907`, `.gv-theme`), logo e URL sono scritti per il DCup in circa 40 file; i modelli dati (`Volley*`) sono già generici.
+- **File:** `tournaments/<id>/config.ts` (blocco della sezione volley: attiva sì/no, nome, colori, logo), `app/(public)/greenvolley/**`, `app/(admin)/admin/greenvolley/**`, `components/gv-theme-wrapper.tsx`, `app/globals.css`, menu, `proxy.ts`.
+- **Fatto quando:** nome, colori e logo della sezione arrivano dalla configurazione; gli URL seguono la scelta di F6-10; con la sezione spenta le pagine rispondono 404 e spariscono dai menu; il DCup appare identico a prima.
+- **Dipende da:** F6-02, F6-10
 
 ### F6-04 · Colori del marchio dalla configurazione
 
@@ -78,6 +78,15 @@ Stories e aggiornamenti in tempo reale valgono per tutti i tornei: non servono f
 - **File:** `app/(public)/regolamento/`, `tournaments/<id>/pages/`.
 - **Fatto quando:** ogni torneo ha il suo regolamento; i valori (punti, capitano, finestra MVP) sono letti dalla configurazione dove possibile.
 - **Dipende da:** F6-02, F6-01
+
+### F6-10 · URL della sezione pallavolo
+
+- **Stato:** da fare
+- **Tipo:** decidere
+- **Obiettivo:** oggi gli URL sono `/greenvolley/*`. Per la FacolCup un indirizzo con "greenvolley" sarebbe strano.
+- **Opzioni:** URL generici uguali per tutti (per esempio `/volley/*`, con redirect da `/greenvolley/*` per non rompere i link già condivisi del DCup); oppure URL presi dalla configurazione del torneo (`/greenvolley/*` per il DCup, `/facolvolley/*` per la FacolCup).
+- **Fatto quando:** la scelta è scritta in `multi_tournament.md` (o in un ADR, se cambia la struttura delle rotte).
+- **Dipende da:** —
 
 ### F6-09 · Secondo torneo in produzione
 
