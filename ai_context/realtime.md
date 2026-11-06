@@ -11,14 +11,16 @@ Decisione del 2026-11-06. Meccanismo unico per mandare aggiornamenti dal server 
 
 ## Decisione: SSE, con segnale più richiesta
 
-- **Canale:** Server-Sent Events. Una route di Next tiene aperta una connessione per ogni persona collegata. WebSocket è stato scartato perché la seconda direzione non serve; il polling perché per avere i gol quasi in diretta dovrebbe chiedere ogni 1–2 secondi.
+Il perché e le alternative scartate sono in `docs/adr/0007-tempo-reale-con-sse.md`.
+
+- **Canale:** Server-Sent Events. Una route di Next tiene aperta una connessione per ogni persona collegata.
 - **Distribuzione:** con un solo container per torneo, il processo Next gira l'evento a tutte le connessioni che tiene aperte. Non servono sistemi intermedi.
 - **Contenuto dell'evento:** solo un segnale di cosa è cambiato (per esempio "la live è cambiata", "c'è una nuova story"). Il browser poi chiede i dati aggiornati con una richiesta normale. Così un evento perso non lascia dati sbagliati: alla richiesta successiva arriva lo stato attuale.
 - **Heartbeat:** il server manda un messaggio "sono vivo" con intervallo inferiore a 60 secondi, il timeout di default di nginx. Tiene aperta la connessione anche quando non succede niente (per esempio durante l'intervallo) e permette al browser di accorgersi se la connessione è caduta.
 
 ## Cache e picco di richieste
 
-Decisione del 2026-11-06: prima di costruire questa parte si migra la cache al modello Cache Components di Next 16 (`use cache`, vedi `TODO.md`), così `getLiveMatches()` nasce già nel modello nuovo. Qui sotto `cachePublicData` indica lo strato di cache dei dati pubblici, qualunque sia la sua implementazione.
+Prima di costruire questa parte si migra la cache al modello Cache Components di Next 16 (`use cache`, vedi `docs/adr/0008-cache-components-prima-del-tempo-reale.md`), così `getLiveMatches()` nasce già nel modello nuovo. Qui sotto `cachePublicData` indica lo strato di cache dei dati pubblici, qualunque sia la sua implementazione.
 
 200 connessioni ferme pesano poco su Node. Il momento delicato è subito dopo un evento: tutti i browser chiedono i dati nello stesso istante.
 
@@ -26,7 +28,6 @@ Decisione del 2026-11-06: prima di costruire questa parte si migra la cache al m
 - La usano sia la homepage sia un endpoint leggero (per esempio `GET /api/live`) che il browser chiama quando riceve il segnale.
 - **Ordine dopo un gol:** l'azione admin salva il gol, svuota la cache (succede già), ricalcola subito una volta i dati live così la cache torna piena, e **solo dopo** manda il segnale SSE. Le richieste dei browser trovano la cache pronta: una sola query al database invece di una per persona.
 - **Homepage:** resta dinamica perché dipende dall'utente (sessione, voti MVP in sospeso), ma legge partite live, prossime partite, gironi e marcatori dalle funzioni in cache. Solo i dati dell'utente restano calcolati a ogni richiesta. `force-dynamic` in sé non è il problema; lo sono le query fatte da zero a ogni visita.
-- Alternativa scartata: tenere lo stato live nella memoria del processo Next. Funzionerebbe con un solo container, ma la cache esistente è lo stesso meccanismo usato dal resto dell'app.
 
 ## Browser e PWA
 

@@ -15,13 +15,7 @@ Decisione del 2026-11-03. Il progetto dovrà gestire almeno due tornei, anche in
 
 Un solo repository e una sola build. Ogni torneo ha il suo deploy, con database, variabili d'ambiente, dominio, job Jenkins e app negli store propri.
 
-Alternative scartate:
-- **Multi-tenant** (modello `Tournament` con `tournamentId` su tutte le tabelle):
-  - sarebbe servito solo con un account unico tra tornei, che non è richiesto;
-  - è il cambiamento più costoso;
-  - c'è il rischio che dati di un torneo compaiano nell'altro.
-- **Motore in un pacchetto condiviso e due app Next.js:** due app da mantenere. Ha senso solo se le interfacce diventano prodotti diversi.
-- **Copia del repository:** le copie divergono e ogni correzione va fatta due volte.
+Il perché e le alternative scartate (multi-tenant, motore condiviso con due app, copia del repository) sono in `docs/adr/0001-installazione-per-torneo.md`.
 
 ## Come funziona
 

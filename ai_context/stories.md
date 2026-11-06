@@ -11,7 +11,7 @@ Decisione del 2026-11-04. Sezione di stories in stile Instagram: contenuti brevi
   - **Utente registrato:** solo foto, solo mentre una finestra di voto MVP è aperta, al massimo una story per partita conclusa (cioè per finestra MVP).
 - **Durata dei video:** al massimo 15 secondi; nell'editor si può caricare un video fino a 30 secondi e tagliarlo (decisione del 2026-11-05).
 - **Durata:** una story è visibile nel feed per 24 ore dalla pubblicazione, poi scade e sparisce dal feed. Il file non viene eliminato: passa nell'archivio, che a fine torneo gli admin possono rivedere e scaricare (decisione del 2026-11-06, vedi "Archivio").
-- **Chi le vede:** tutti, anche i guest senza account (decisione del 2026-11-06, prima erano riservate agli utenti loggati). Pubblicare resta riservato ai ruoli indicati sopra.
+- **Chi le vede:** tutti, anche i guest senza account (`docs/adr/0006-stories-visibili-ai-guest.md`; prima erano riservate agli utenti loggati). Pubblicare resta riservato ai ruoli indicati sopra.
 - **Guest (decisione del 2026-11-06):** possono solo guardare. Non reagiscono e non segnalano (i relativi pulsanti possono invitare a fare login). Nell'elenco delle visualizzazioni l'autore vede le persone registrate per nome e gli ospiti come totale ("+12 ospiti"). Per non contare più volte lo stesso ospite, il browser conserva un identificativo anonimo generato a caso, non collegato a nessun dato personale.
 - **Motori di ricerca:** la pagina delle stories non va indicizzata.
 - **Visualizzazioni:** si registra chi ha visto ogni story. L'autore vede l'elenco delle persone che l'hanno vista.
@@ -29,12 +29,7 @@ Decisione del 2026-11-04. Sezione di stories in stile Instagram: contenuti brevi
 
 ## Decisione tecnica: tutto in Next.js
 
-Le stories, interfaccia e backend, sono gestite da Next.js come il resto dell'app. Decisione aggiornata il 2026-11-06: il servizio Quarkus separato previsto in precedenza è stato rimosso, insieme al token firmato e al JWKS che servivano solo a lui.
-
-Motivi:
-- la compressione dei video non serve sul server: il Media Composer (`media_composer.md`) esporta già nel browser un MP4 compresso di al massimo 15 secondi;
-- un secondo servizio (JVM, deploy, autenticazione tra servizi) costava più di quanto rendeva;
-- senza ffmpeg sul server, nelle stories non resta lavoro pesante che possa rallentare il resto dell'app.
+Le stories, interfaccia e backend, sono gestite da Next.js come il resto dell'app. Il perché, e le alternative scartate (servizio Quarkus, compressione sul server), sono in `docs/adr/0002-stories-in-next.md`.
 
 Struttura:
 - **Editor lato client:** il file da caricare è prodotto dal Media Composer, che oggi pubblica solo in modo simulato.
@@ -45,7 +40,7 @@ Struttura:
 
 ## Storage
 
-Decisione del 2026-11-06.
+Decisioni: `docs/adr/0003-storage-r2-e-archivio-hetzner.md` e `docs/adr/0005-bucket-stories-pubblico.md`.
 
 - **Stories attive: Cloudflare R2.** Una story si carica una volta e si guarda molte volte, e R2 non fa pagare il traffico in uscita. Si pagano solo spazio e operazioni oltre la soglia gratuita (10 GB, 1 milione di scritture e 10 milioni di letture al mese).
 - **Archivio: Hetzner Object Storage**, già disponibile (1 TB di spazio e 1 TB di traffico in uscita compresi nel canone). Fa da archivio freddo: lo leggono solo gli admin a fine torneo, quindi la quota di traffico basta.
@@ -53,6 +48,8 @@ Decisione del 2026-11-06.
 - **Lettura (decisione del 2026-11-06):** il bucket R2 delle stories attive è pubblico in lettura, servito da un dominio personalizzato, con percorsi dei file impossibili da indovinare (decisi da Next al passo 3). Priorità a semplicità e cache: il link di un file non cambia mai e passa dalla cache di Cloudflare. La riservatezza dei file non è un obiettivo: chi ha il link di un file può vederlo senza login, e comunque le stories sono visibili anche ai guest. Quando il file passa nell'archivio, il link su R2 smette di funzionare. Per la produzione va usato il dominio personalizzato e non l'indirizzo `r2.dev` di prova (da verificare in fase di setup). L'archivio su Hetzner resta privato.
 
 ## Flusso di pubblicazione
+
+Decisione: `docs/adr/0004-caricamento-diretto-con-url-firmato.md`.
 
 1. **Pagina di creazione:** accessibile solo a chi in quel momento può pubblicare. È un controllo per l'interfaccia, perché le regole cambiano nel tempo (la finestra MVP può chiudersi mentre l'utente sta modificando). Il controllo che conta è al passo 3.
 2. **Editor:** l'utente crea e modifica il contenuto nel Media Composer, che esporta un file già compresso.
@@ -96,7 +93,7 @@ Decisione del 2026-11-06.
 
 ## Job periodici
 
-Li esegue il backend Next, sulla stessa macchina, con un timer interno al processo Next (decisione del 2026-11-06):
+Li esegue il backend Next, sulla stessa macchina, con un timer interno al processo Next (`docs/adr/0009-job-con-timer-interno.md`):
 - il timer non conta 24 ore dall'avvio, che con deploy frequenti non scatterebbero mai: controlla ogni tanto la data dell'ultima esecuzione salvata nel database e fa partire il job se è passato abbastanza tempo;
 - c'è un solo container per torneo (ogni torneo ha la sua installazione), quindi non servono lucchetti contro due esecuzioni in parallelo. I job restano comunque rilanciabili senza danni. Copiare file è lavoro di rete e quasi niente CPU, e con i volumi di un torneo locale (qualche GB al giorno al massimo) non serve un servizio separato. Si separa solo se le misure mostrano che il job rallenta l'app.
 
