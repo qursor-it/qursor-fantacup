@@ -14,7 +14,24 @@ Cosa resta da fare, diviso in fasi. **Come** funziona il progetto è in `ai_cont
 | F6 · Multi-torneo | [06-multi-torneo.md](06-multi-torneo.md) | — (F6-07 dopo F2-01) |
 | F7 · Configuratore per gli organizzatori | [07-configuratore.md](07-configuratore.md) | F1-03 |
 
-Il secondo torneo parte a breve: F6 procede in parallelo a F1, perché tocca file diversi (configurazione, asset, Docker, Jenkins). F6-05 e F6-06 vanno fatti prima di F3-12, così le credenziali degli storage si configurano una volta sola per torneo.
+F6-05 e F6-06 vanno fatti prima di F3-12, così le credenziali degli storage si configurano una volta sola per torneo.
+
+## Ordine consigliato (aggiornato al 2026-11-06)
+
+F1 e F6 toccano gli stessi file (layout, `lib/site.ts`, manifest, componenti che leggono la configurazione), quindi si fanno in sequenza sullo stesso branch. Il secondo torneo (FacolCup) parte a breve, quindi il percorso critico di F6 passa davanti alla migrazione della cache.
+
+1. **F1-01** · misura di partenza, prima di qualsiasi modifica al codice (altrimenti il confronto finale non vale).
+2. **F1-02** · inventario (solo lettura).
+3. **F6-02 → F6-03 → F6-04**, poi **F6-05 → F6-06** · percorso critico per la FacolCup; si verificano con il DCup, che deve restare identico.
+4. **F1-03 → F1-07** · migrazione della cache.
+5. **F4-01** · verifica dei residui degli audit, in qualsiasi momento (solo lettura).
+
+Bloccati, e da chi:
+- **dal responsabile del progetto:** dati della FacolCup (F6-01, servono a F6-07, F6-08, F6-09); configurazione nginx di fantadc sul server (F2-01); account e bucket di R2 e Hetzner (F3-12);
+- **da decisioni:** lo sviluppo delle stories (F3-10 e seguenti) aspetta F3-01 … F3-09;
+- **da altre fasi:** F2 aspetta F1; F7 aspetta F1-03 e la partenza della FacolCup.
+
+Quando un task finisce, aggiorna anche questo elenco se cambia l'ordine o se si sblocca qualcosa.
 
 Le decisioni che bloccano un task stanno nella stessa fase, come task di tipo "decidere".
 
