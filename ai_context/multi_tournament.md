@@ -47,13 +47,13 @@ Si parte con tutto in comune e si separa solo quando una differenza reale lo ric
 1. Crea `tournaments/<id>/config.ts` con identità, regole e `features`, e aggiungilo all'elenco in `tournaments/index.ts`.
 2. Metti logo, icone e immagini in `tournaments/<id>/public/`, con gli stessi nomi di file del DCup dove si sostituiscono.
 3. Aggiungi le eventuali versioni di pagina in `tournaments/<id>/pages/` (vedi `tournament_ui.md`).
-4. Prepara il deploy con `NEXT_PUBLIC_TOURNAMENT=<id>`, che comprende:
+4. Prepara il deploy con `NEXT_PUBLIC_TOURNAMENT=<id>` (dopo F6-02 e F6-06: `TOURNAMENT=<id>` all'avvio e la versione dell'immagine da usare, senza una build dedicata), che comprende:
    - un database proprio;
    - le credenziali Jenkins proprie (file env, admin, chiavi VAPID per le notifiche push);
    - un dominio proprio.
 5. Dopo il primo deploy, genera l'app con PWABuilder dal dominio del torneo e aggiorna `tournaments/<id>/public/.well-known/assetlinks.json` con il package e la fingerprint della nuova chiave.
 6. Crea in admin i bonus e i malus (`BonusType`) del torneo.
-7. Controlla i comandi di verifica in `tournament_ui.md`, eseguendo la build per ogni torneo.
+7. Controlla i comandi di verifica in `tournament_ui.md`.
 
 ### App negli store (PWABuilder)
 

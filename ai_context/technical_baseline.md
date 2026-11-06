@@ -112,7 +112,7 @@ Il rate limit usa l'IP del client ricavato da `x-forwarded-for` partendo da dest
 
 ## Più tornei (un'installazione per torneo)
 
-Configurazione per torneo in `tournaments/<id>.ts`, scelta al build con `NEXT_PUBLIC_TOURNAMENT` (default `dcup`). Decisione, funzionamento e passi successivi in `multi_tournament.md`.
+Configurazione per torneo in `tournaments/<id>.ts`, oggi scelta al build con `NEXT_PUBLIC_TOURNAMENT` (default `dcup`); deciso il passaggio alla scelta all'avvio del container (`docs/adr/0011-torneo-scelto-all-avvio.md`, F6-02). Decisione, funzionamento e passi successivi in `multi_tournament.md`.
 
 ## Media Composer
 

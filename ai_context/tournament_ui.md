@@ -2,7 +2,7 @@
 
 Guida pratica per far differire l'interfaccia tra tornei. Il contesto e la decisione architetturale stanno in `multi_tournament.md`.
 
-> **Stato:** `tournament.id`, `tournament.features` e la cartella `tournaments/<id>/` vengono introdotti con il passo 3 di `multi_tournament.md`. Finché non ci sono, gli esempi sotto descrivono lo schema da seguire, non codice già esistente. Il caso 2 va verificato con una build reale alla prima pagina che lo usa.
+> **Stato:** `tournament.id`, `tournament.features`, la cartella `tournaments/<id>/` e la scelta del torneo all'avvio del container (`docs/adr/0011-torneo-scelto-all-avvio.md`) vengono introdotti con F6-02 (`docs/roadmap/06-multi-torneo.md`). Finché non ci sono, gli esempi sotto descrivono lo schema da seguire, non codice già esistente. Il caso 2 va verificato con una build reale alla prima pagina che lo usa.
 
 ## Regola generale
 
@@ -31,7 +31,7 @@ tournaments/
 app/                    pagine condivise, come oggi
 ```
 
-Il torneo attivo si sceglie al momento della build con `NEXT_PUBLIC_TOURNAMENT`.
+Il torneo attivo si sceglie all'avvio del container con la variabile `TOURNAMENT` (ADR-0011). Fino a F6-02 si sceglie ancora al momento della build con `NEXT_PUBLIC_TOURNAMENT`.
 
 ## Caso 1: pagina presente in un solo torneo
 
@@ -98,12 +98,11 @@ Perché non un alias di build (`@tournament/...` con `turbopack.resolveAlias`): 
 [data-tournament="altro"] .hero { background-image: url("/images/hero.webp"); }
 ```
 
-- **Immagini e asset:** stanno in `tournaments/<id>/public/` e vengono copiati in `public/` durante la build. Per questo si usano gli stessi percorsi (es. `/images/hero.webp`) e ogni torneo fornisce il suo file.
+- **Immagini e asset:** stanno in `tournaments/<id>/public/` e il server li serve in base al torneo scelto all'avvio (ADR-0011). Per questo si usano gli stessi percorsi (es. `/images/hero.webp`) e ogni torneo fornisce il suo file.
 
 ## Verifica
 
 Prima di committare una differenza per torneo:
 1. `npx tsc --noEmit`, che controlla anche che ogni torneo abbia tutti i campi e i flag della configurazione.
-2. `npm run build` con il torneo di default.
-3. `NEXT_PUBLIC_TOURNAMENT=<altro> npm run build` per ogni altro torneo toccato.
-4. Apri la pagina in locale con entrambi i tornei e controlla che la versione giusta compaia, e che le sezioni disattivate rispondano 404.
+2. `npm run build`: dopo F6-02 una sola build vale per tutti i tornei (prima di F6-02 serve `NEXT_PUBLIC_TOURNAMENT=<altro> npm run build` per ogni altro torneo toccato).
+3. Avvia l'app con `TOURNAMENT=<id>` per ciascun torneo toccato, apri la pagina e controlla che compaia la versione giusta e che le sezioni disattivate rispondano 404.
