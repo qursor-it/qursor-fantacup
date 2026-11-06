@@ -66,21 +66,15 @@ La chiave di firma Android generata da PWABuilder va conservata: senza, l'app no
 
 ## Stato e prossimi passi
 
+Le attività ancora da fare sono task della fase F6 in `docs/roadmap/06-multi-torneo.md`.
+
 1. **Fatto (`35d5803`):** configurazione per torneo, con identità e regole spostate in `tournaments/dcup.ts`. Il comportamento del DCup è invariato.
-2. **Da fare:** colori del marchio (3–4) in variabili CSS lette dalla configurazione. Gli altri colori scritti a mano restano.
-3. **Da fare:** struttura per torneo:
-   - `id` e `features` in `TournamentConfig`;
-   - `tournaments/dcup.ts` spostato in `tournaments/dcup/config.ts`;
-   - loghi, icone e `assetlinks.json` in `tournaments/<id>/public`, copiati in `public/` durante la build Docker;
-   - `data-tournament` sull'`<html>`;
-   - flag delle sezioni (green volley) in `proxy.ts` e nei menu.
-4. **Da fare:** Docker Compose e Jenkins parametrici per torneo:
-   - nomi dei container, porte e volumi con un prefisso per torneo (oggi sono fissi: `fantadc-prod`, `fantadc-postgres-prod`);
-   - un job Jenkins per torneo, con `TOURNAMENT` e credenziali proprie (file env, admin, chiavi VAPID).
-5. **Da fare:** il secondo torneo, con configurazione, asset, dominio, job e app PWABuilder.
+2. **Da fare:** colori del marchio dalla configurazione (F6-04), struttura per torneo e sezioni attivabili (F6-02, F6-03), Docker Compose e Jenkins per torneo (F6-05, F6-06), nginx (F6-07), regolamento per torneo (F6-08), secondo torneo in produzione (F6-09).
+
+Stories e aggiornamenti in tempo reale valgono per tutti i tornei; le loro regole numeriche stanno nella configurazione del torneo.
 
 ## Ancora specifico del DCup
 
 - **Regolamento:** il testo della pagina è scritto a mano. Probabilmente sarà la prima pagina con una versione per torneo.
-- **Green volley:** è sempre attivo finché non c'è il flag del passo 3.
-- **Colori:** sono scritti a mano nelle pagine finché non si fa il passo 2.
+- **Green volley:** è sempre attivo finché non c'è il flag di F6-03.
+- **Colori:** sono scritti a mano nelle pagine finché non si fa F6-04.

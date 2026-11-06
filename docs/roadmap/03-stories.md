@@ -95,7 +95,7 @@ Obiettivo della fase: stories reali al posto della pubblicazione simulata del Me
 - **Tipo:** fare
 - **Leggere prima:** `stories.md` (Stati nel database, Flusso, Job), ADR-0004.
 - **File:** `prisma/schema.prisma`, nuova migration, `ai_context/prisma_model.md`, `ai_context/db.md`.
-- **Fatto quando:** esistono i modelli per: story (autore, tipo, stato in caricamento/pubblicata, scadenza di caricamento, percorso del file, posizione del file R2/in spostamento/Hetzner, data di caricamento e di pubblicazione, finestra MVP o partita collegata); visualizzazioni (utente oppure identificativo anonimo dell'ospite, una sola per persona); reazioni (solo utenti, emoji dall'elenco fisso); segnalazioni; data dell'ultima esecuzione di ogni job. I limiti sono garantiti dal database (vincoli di unicità, per esempio utente + finestra MVP).
+- **Fatto quando:** esistono i modelli per: story (autore, tipo, stato in caricamento/pubblicata, scadenza di caricamento, percorso del file, posizione del file R2/in spostamento/Hetzner, data di caricamento e di pubblicazione, finestra MVP o partita collegata); visualizzazioni (utente oppure identificativo anonimo dell'ospite, una sola per persona); reazioni (solo utenti, emoji dall'elenco fisso); segnalazioni; data dell'ultima esecuzione di ogni job. I limiti sono garantiti dal database (vincoli di unicità, per esempio utente + finestra MVP). Le regole numeriche (10 stories attive per caposquadra, 24 ore, scadenza di caricamento, dimensioni dei file) stanno in `TournamentConfig.rules`, con gli stessi valori per tutti i tornei.
 - **Dipende da:** F3-10
 
 ### F3-12 · Bucket e configurazione
@@ -104,8 +104,8 @@ Obiettivo della fase: stories reali al posto della pubblicazione simulata del Me
 - **Tipo:** fare
 - **Obiettivo:** storage pronti per DEV e produzione, per ogni torneo.
 - **File:** `.env.example`, `.env.docker.example`, `docker-compose*.yml`, `Jenkinsfile*` (credenziali), `README.md`.
-- **Fatto quando:** bucket R2 pubblico in lettura con dominio personalizzato (non `r2.dev`) e CORS che permette il PUT dal dominio del torneo; bucket Hetzner privato; chiavi solo nelle variabili del server; storage di sviluppo come deciso in F3-09; tutto descritto nel README.
-- **Dipende da:** F3-09
+- **Fatto quando:** per ogni torneo, bucket R2 pubblico in lettura con dominio personalizzato (non `r2.dev`) e CORS che permette il PUT dal dominio del torneo; bucket Hetzner privato; chiavi solo nelle variabili del server; storage di sviluppo come deciso in F3-09; tutto descritto nel README.
+- **Dipende da:** F3-09, F6-05, F6-06
 
 ### F3-13 · Libreria di accesso agli storage
 

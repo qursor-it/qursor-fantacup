@@ -11,6 +11,9 @@ Cosa resta da fare, diviso in fasi. **Come** funziona il progetto è in `ai_cont
 | F3 · Stories | [03-stories.md](03-stories.md) | F1, F2 (solo F3-22) |
 | F4 · Residui degli audit del 2026-11-03 | [04-audit.md](04-audit.md) | — (F4-05 prima di F2-05) |
 | F5 · Decisioni di prodotto e altro | [05-prodotto.md](05-prodotto.md) | — |
+| F6 · Multi-torneo | [06-multi-torneo.md](06-multi-torneo.md) | — (F6-07 dopo F2-01) |
+
+Il secondo torneo parte a breve: F6 procede in parallelo a F1, perché tocca file diversi (configurazione, asset, Docker, Jenkins). F6-05 e F6-06 vanno fatti prima di F3-12, così le credenziali degli storage si configurano una volta sola per torneo.
 
 Le decisioni che bloccano un task stanno nella stessa fase, come task di tipo "decidere".
 
