@@ -16,8 +16,10 @@ Treat the files in `ai_context/` as the shared project context for product scope
 # Working Rules For This Repo
 
 * Do not invent domain rules that conflict with `ai_context/`.
-* If implementation decisions depend on unresolved product choices, check `ai_context/open_questions.md` first.
-* If a task changes product scope, domain behavior, permissions, or major technical direction, update the relevant file in `ai_context/` before or together with the code change.
+* Past architectural decisions, with their reasons and rejected alternatives, are in `docs/adr/`. Do not reverse one silently: write a new ADR that supersedes it.
+* Planned work is in `docs/roadmap/`. If implementation depends on an unresolved choice, check the "decidere" tasks there first.
+* If a task changes product scope, domain behavior, permissions, or major technical direction, update the relevant file in `ai_context/` before or together with the code change, and add an ADR in `docs/adr/` for architectural decisions.
+* When a roadmap task is done, update its status in `docs/roadmap/` in the same commit.
 * Use `ai_context/prisma_model.md` and `ai_context/db.md` as the baseline reference for the current data model until the real Prisma schema is introduced or updated.
 
 # Step Completion Checklist

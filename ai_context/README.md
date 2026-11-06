@@ -1,7 +1,12 @@
 # AI Context Index
 
 Questa cartella contiene il contesto condiviso del progetto.
-Non e un planning operativo: serve a descrivere prodotto, dominio, regole, flussi, baseline tecnica e decisioni ancora aperte.
+Non e un planning operativo: serve a descrivere come funzionano prodotto, dominio, regole, flussi e baseline tecnica.
+
+Altri documenti:
+
+* `docs/adr/`: le decisioni architetturali, con motivazioni e alternative scartate (il perché).
+* `docs/roadmap/`: le attività pianificate, divise in fasi, comprese le decisioni ancora da prendere (cosa resta da fare).
 
 ## Ordine di lettura consigliato
 
@@ -17,8 +22,6 @@ Non e un planning operativo: serve a descrivere prodotto, dominio, regole, fluss
    - `stories.md`
    - `media_composer.md`
    - `realtime.md`
-8. `open_questions.md`
-9. `open_questions/decisioni_core.md`
 
 ## File principali
 
@@ -60,7 +63,7 @@ Guida pratica per pagine presenti in un solo torneo, versioni di pagina per torn
 
 ### `stories.md`
 
-Decisione sulla sezione stories (foto e video in stile Instagram): chi pubblica, limiti, moderazione admin, ruolo caposquadra e backend in Next.
+Requisiti e funzionamento delle stories (foto e video in stile Instagram): chi pubblica e chi vede, limiti, moderazione, ruolo caposquadra, storage R2 e archivio Hetzner, flusso di pubblicazione con URL firmato, job periodici.
 
 ### `media_composer.md`
 
@@ -69,16 +72,6 @@ Editor di foto e video lato client (pubblicazione solo simulata): architettura, 
 ### `realtime.md`
 
 Aggiornamenti in tempo reale dal server al browser (gol in diretta, nuove stories): SSE con segnale più richiesta, cache ricalcolata prima del segnale, heartbeat, recupero al rientro della PWA, note su nginx.
-
-### `open_questions.md`
-
-Elenco ridotto dei soli punti ancora aperti dopo la chiusura delle decisioni macro. E il file da consultare prima del planning completo se servono ultime conferme.
-
-## Sottocartelle
-
-### `open_questions/decisioni_core.md`
-
-Questionario esteso con le risposte raccolte sulle 5 decisioni principali che hanno definito il contesto attuale. Va tenuto come traccia delle decisioni prese.
 
 ## Regola di manutenzione
 
